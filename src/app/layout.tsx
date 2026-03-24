@@ -10,17 +10,13 @@ export const metadata: Metadata = {
   description: "El reto musical diario",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
+export default function RootLayout({}: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
     <html lang="es">
-      <body className={`${inter.className} antialiased bg-black text-white`}>
-        <main className="pb-20">
-          {children}
-        </main>
+      <body className={`${inter.className} text-white`}>
+        <main className="pb-20"></main>
         <BottomNav />
       </body>
     </html>
