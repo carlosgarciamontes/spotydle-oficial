@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/layout/BottomNav";
+import LevelCard from "@/components/ui/LevelCard";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,6 +18,9 @@ export default function RootLayout({}: Readonly<{
     <html lang="es">
       <body className={`${inter.className} text-white`}>
         <main className="pb-20"></main>
+        <LevelCard
+         title="Adivina la Canción" 
+  imageUrl="/assets/Spotydle.png"/>
         <BottomNav />
       </body>
     </html>
