@@ -21,12 +21,16 @@ const LevelCard = React.forwardRef<HTMLButtonElement, LevelCardProps>(
         {...props}
       >
         <div className="absolute inset-0 z-0">
-          <Image 
-            src={imageUrl} 
-            alt={title} 
-            fill 
-            className="object-cover opacity-80 transition-transform duration-500 group-hover:scale-110" 
-          />
+         {imageUrl && (
+            <Image 
+              src={imageUrl} 
+              alt={title || "Imagen del nivel"} 
+              fill 
+              className="object-cover opacity-80 transition-transform duration-500 group-hover:scale-110" 
+            />
+          )}
+
+          
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
         </div>
 
