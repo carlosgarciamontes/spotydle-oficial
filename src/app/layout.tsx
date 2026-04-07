@@ -23,7 +23,7 @@ export default function RootLayout({
           {children}
         </main>
         <GameFooter />
-        <BottomNav />
+        
       </body>
     </html>
   );
