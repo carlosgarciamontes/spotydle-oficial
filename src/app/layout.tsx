@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import GameFooter from "@/components/layout/GameFooter";
 import BottomNav from "@/components/layout/BottomNav";
+import GameFooter from "@/components/layout/GameFooter"
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,7 +24,6 @@ export default function RootLayout({
         </main>
         <BottomNav />
         <GameFooter />
-        
       </body>
     </html>
   );
