@@ -1,3 +1,5 @@
+'use client';
+
 import React from "react";
 import Image from "next/image";
 import { X } from "lucide-react";
@@ -112,7 +114,7 @@ const UserCard = React.forwardRef<HTMLDivElement, UserCardProps>(
 
         {/* --- PARTE DERECHA --- */}
         <Button 
-          intent={isPending ? "secondary" : "spotydle"}
+          intent={isPending ? "secondary" : "primary"}
           size="sm"
           disabled={isPending}
           className="rounded-full px-6"
