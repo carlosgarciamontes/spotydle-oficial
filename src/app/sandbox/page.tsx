@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/Input';
 
 export default function SandboxPage() {
   const intents = ["primary", "outline", "secondary", "ghost"] as const;
-  const sizes = ["sm", "default", "lg", "icon"] as const;
+  const sizes = ["sm", "default","lgRounded", "lgSquare", "icon"] as const;
 
   return (
     <div className="min-h-screen p-10 bg-black text-white flex flex-col items-center pt-20 gap-16 pb-20">

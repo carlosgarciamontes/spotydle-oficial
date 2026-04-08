@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import GameFooter from "@/components/layout/GameFooter";
 import BottomNav from "@/components/layout/BottomNav";
+import LoginForm from "@/components/auth/LoginForm";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,10 +21,9 @@ export default function RootLayout({
     <html lang="es">
       <body className={`${inter.className} text-white bg-black min-h-screen`}>
         <main className="pb-20">
-          {children}
+          <LoginForm />
         </main>
-        <BottomNav />
-        <GameFooter />
+        
         
       </body>
     </html>
