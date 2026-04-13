@@ -9,6 +9,7 @@ interface GameFooterProps {
   onSkip?: () => void;
   onGuess?: () => void;
   inputValue?: string;
+  setInputValue?: (val: string) => void;
   isGuessDisabled?: boolean;
   className?: string;
 }
@@ -16,7 +17,8 @@ interface GameFooterProps {
 const GameFooter: React.FC<GameFooterProps> = ({ 
   onSkip, 
   onGuess, 
-  inputValue = "", 
+  inputValue = "",
+  setInputValue, 
   isGuessDisabled = false,
   className 
 }) => {
