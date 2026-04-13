@@ -3,7 +3,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import GameInput from './GameInput';
 
 interface GameFooterProps {
   onSkip?: () => void;
@@ -44,14 +44,11 @@ const GameFooter: React.FC<GameFooterProps> = ({
             SKIP
           </Button>
 
-          <div className="flex-1 h-full relative group">
-            <Input 
-              defaultValue={inputValue}
-              placeholder="Search artist or track..." 
-              onKeyDown={handleKeyDown}
-              className="h-full w-full"
-            />
-          </div>
+          <GameInput 
+            value={inputValue}
+            onChange={(e) => setInputValue?.(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
 
           <Button 
             intent="primary" 
