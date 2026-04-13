@@ -19,10 +19,6 @@ const GameInput: React.FC<GameInputProps> = ({ value, onChange, onKeyDown }) => 
         placeholder="Search artist or track..." 
         className="h-full w-full bg-[#444444] border-none text-white placeholder:text-gray-400"
       />
-      {/* NOTA PARA EL FUTURO: 
-         Aquí es donde desplegaremos la lista de resultados de Spotify 
-         usando un posicionamiento absoluto (absolute bottom-full).
-      */}
     </div>
   );
 };
