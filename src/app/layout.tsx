@@ -4,7 +4,7 @@ import "./globals.css";
 import BottomNav from "@/components/layout/BottomNav";
 import RegisterForm from "@/components/auth/RegisterForm";
 import LoginForm from "@/components/auth/LoginForm";
-import GameFooter from "@/components/layout/GameFooter"
+import GameFooter from "@/components/game/GameFooter"
 
 const inter = Inter({ subsets: ["latin"] });
 
