@@ -4,13 +4,16 @@ import { cn } from "@/lib/utils";
 
 export type ClueStatus = "locked" | "active" | "completed" | "failed";
 
+// 1. ACTUALIZAMOS EL CONTRATO
 interface BaseClue {
   id: number;
   label: string;
   status: ClueStatus;
   userGuess?: {
     artist: string;
+    artistCorrect: boolean; // NUEVO: ¿Acertó el artista?
     song: string;
+    songCorrect: boolean;   // NUEVO: ¿Acertó la canción?
   };
 }
 
@@ -59,48 +62,86 @@ const Clues: React.FC<CluesProps> = ({ clues, onClueClick, className }) => {
             clue.status === "completed" && "border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.15)] text-white",
           )}
         >
+          {/* --- ZONA IZQUIERDA Y CENTRAL --- */}
           <div className={cn(
             "flex items-center gap-3 overflow-hidden min-w-0 flex-1",
-            clue.status !== "locked" && "justify-center"
+            ((clue.type === "info" && clue.status !== "locked") || clue.status === "completed") && "justify-center"
           )}>
-            <div className="flex items-center gap-2 shrink-0">
-              {clue.status === "locked" && (
-                <span className="font-bold text-sm md:text-base whitespace-nowrap">
-                  {clue.label}
+            
+            {/* ESTADO COMPLETADO (VICTORIA) */}
+            {clue.status === "completed" && clue.userGuess ? (
+              <div className="flex items-center justify-center gap-2 w-full min-w-0">
+                <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)] shrink-0"></span>
+                <span className="text-gray-100 font-bold truncate text-sm md:text-base">
+                  {clue.userGuess.artist}
                 </span>
-              )}
-            </div>
-
-            {clue.status !== "locked" && clue.type === "info" && (
-              <div className="flex flex-wrap justify-center gap-1.5 overflow-hidden">
-                {clue.infoData.map((info, idx) => (
-                  <span
-                    key={idx}
-                    className="text-[10px] md:text-xs font-medium bg-black/40 px-2 py-0.5 rounded border border-white/5 whitespace-nowrap"
-                  >
-                    <span className="text-gray-400 mr-1">{info.label}:</span>
-                    <span className="text-gray-100">{info.value}</span>
-                  </span>
-                ))}
+                <span className="text-gray-400 font-medium truncate text-sm md:text-base">
+                  — {clue.userGuess.song}
+                </span>
               </div>
+            ) : (
+              /* ESTADOS NORMALES */
+              <>
+                <div className="flex items-center gap-2 shrink-0">
+                  {!(clue.type === "info" && clue.status !== "locked") && (
+                    <span className="font-bold text-sm md:text-base whitespace-nowrap">
+                      {clue.label}
+                    </span>
+                  )}
+                </div>
+
+                {clue.status !== "locked" && clue.type === "info" && (
+                  <div className="flex flex-wrap justify-center gap-1.5 overflow-hidden">
+                    {clue.infoData.map((info, idx) => (
+                      <span
+                        key={idx}
+                        className="text-[10px] md:text-xs font-medium bg-black/40 px-2 py-0.5 rounded border border-white/5 whitespace-nowrap"
+                      >
+                        <span className="text-gray-400 mr-1">{info.label}:</span>
+                        <span className="text-gray-100">{info.value}</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
 
+          {/* --- ZONA DERECHA --- */}
           <div className="flex items-center gap-2 shrink-0 ml-2">
+            
+            {/* INTENTOS FALLIDOS (Con lógica de colores) */}
             {clue.status === "failed" && clue.userGuess && (
-              <div className="flex items-center gap-2 text-[10px] md:text-xs max-w-[100px] md:max-w-[200px]">
+              <div className="flex flex-col md:flex-row items-end md:items-center gap-0.5 md:gap-2 text-[10px] md:text-xs max-w-[120px] md:max-w-[220px]">
+                
+                {/* Artista: Verde si es correcto, Rojo si es incorrecto */}
                 <div className="flex items-center gap-1 min-w-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0"></span>
-                  <span className="text-gray-300 truncate font-bold">
+                  <span className={cn(
+                    "w-1.5 h-1.5 rounded-full shrink-0",
+                    clue.userGuess.artistCorrect ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
+                  )}></span>
+                  <span className={cn(
+                    "truncate font-bold",
+                    clue.userGuess.artistCorrect ? "text-gray-200" : "text-gray-400"
+                  )}>
                     {clue.userGuess.artist}
                   </span>
                 </div>
-                <div className="hidden md:flex items-center gap-1 min-w-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0"></span>
-                  <span className="text-gray-500 truncate italic">
+
+                {/* Canción: Verde si es correcto, Rojo si es incorrecto */}
+                <div className="flex items-center gap-1 min-w-0">
+                  <span className={cn(
+                    "w-1.5 h-1.5 rounded-full shrink-0",
+                    clue.userGuess.songCorrect ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
+                  )}></span>
+                  <span className={cn(
+                    "truncate italic",
+                    clue.userGuess.songCorrect ? "text-gray-300 font-semibold" : "text-gray-500"
+                  )}>
                     {clue.userGuess.song}
                   </span>
                 </div>
+
               </div>
             )}
 
