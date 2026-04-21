@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/Input';
 import LoginForm from '@/components/auth/LoginForm';
 import RegisterForm from '@/components/auth/RegisterForm';
 import Clues, { Clue } from '@/components/game/Clues';
-import AudioPlayer from '@/components/game/Audioplayer'; // Asumiendo que lo guardaste aquí
+import AudioPlayer from '@/components/game/Audioplayer';
+import GuessGrid from '@/components/game/GuessGrid'; // IMPORTAMOS EL GUESSGRID
 
 // ==========================================
 // SIMULACIÓN DE PARTIDA: "Linkin Park - In The End"
@@ -49,7 +50,6 @@ const gameStep3Win: Clue[] = [
 
 
 export default function SandboxPage() {
-  // Estado para controlar el AudioPlayer en el Sandbox interactivo
   const [isPlaying, setIsPlaying] = useState(false);
 
   const intents = ["primary", "outline", "secondary", "ghost"] as const;
@@ -58,19 +58,26 @@ export default function SandboxPage() {
   return (
     <div className="min-h-screen p-6 md:p-10 bg-black text-white flex flex-col items-center pt-20 gap-20 pb-40">
       
-      {/* 1. SECCIÓN DE JUEGO PRINCIPAL (Simulando la vista real) */}
-      <div className="w-full max-w-md"> {/* max-w-md simula la vista móvil del juego */}
+      {/* 1. SECCIÓN DE JUEGO PRINCIPAL */}
+      <div className="w-full max-w-md">
         <h1 className="text-3xl font-bold mb-10 text-spotydle text-center">Spotydle Game View</h1>
         
         <div className="flex flex-col border border-sp-dark rounded-[2.5rem] bg-[#121212] overflow-hidden shadow-2xl relative">
-          {/* Header de la App (simulado) */}
+          
+          {/* Header de la App */}
           <div className="flex items-center justify-between p-6 pb-2">
             <span className="text-spotydle font-black tracking-widest text-lg">SPOTYDLE</span>
             <span className="text-gray-500 text-sm font-bold bg-black/50 px-3 py-1 rounded-full">1/6 Tries</span>
           </div>
 
-          <div className="p-6 flex flex-col gap-6">
-            {/* EL AUDIO PLAYER */}
+          <div className="p-6 pt-2 flex flex-col gap-6">
+            
+            {/* GUESS GRID - Vista Principal (Vacío al empezar) */}
+            <div className="flex justify-center w-full">
+              <GuessGrid guesses={[]} />
+            </div>
+
+            {/* AUDIO PLAYER */}
             <AudioPlayer 
               isPlaying={isPlaying} 
               onTogglePlay={() => setIsPlaying(!isPlaying)} 
@@ -78,20 +85,27 @@ export default function SandboxPage() {
             
             <div className="w-full h-px bg-white/5 my-2"></div>
 
-            {/* LAS PISTAS */}
+            {/* PISTAS */}
             <Clues clues={gameStep1Start} />
           </div>
         </div>
       </div>
 
-      {/* --- EL RESTO DEL SANDBOX (Atributos secundarios) --- */}
+      {/* --- STORYTELLING (Atributos secundarios) --- */}
       <div className="w-full max-w-4xl mt-20">
         <h2 className="text-2xl font-bold mb-8 text-gray-400 border-b border-gray-800 pb-4">Game States (Storytelling)</h2>
         <div className="flex flex-col gap-12">
+          
           <section className="p-6 md:p-10 border border-sp-dark rounded-3xl bg-[#121212] relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-orange-500 to-transparent opacity-30"></div>
             <h2 className="text-lg font-bold text-gray-200 mb-2">Turno 4: Tensión en el ambiente</h2>
             <p className="text-sm text-gray-500 mb-8">Ha fallado 3 veces, pero en la pista 2 <span className="text-green-400 font-bold">acertó el artista (Linkin Park)</span>.</p>
+            
+            {/* GUESS GRID - Turno 4 (Fallo, Parcial, Fallo) */}
+            <div className="flex justify-center w-full mb-8">
+              <GuessGrid guesses={["wrong", "partial", "wrong"]} />
+            </div>
+
             <Clues clues={gameStep2Midgame} />
           </section>
 
@@ -99,6 +113,12 @@ export default function SandboxPage() {
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-green-500 to-transparent opacity-50"></div>
             <h2 className="text-lg font-bold text-green-400 mb-2">Turno 5: ¡Victoria Épica!</h2>
             <p className="text-sm text-gray-500 mb-8">La portada borrosa le dio la clave. Adivinó la canción y la pastilla central se corona con la respuesta correcta.</p>
+            
+            {/* GUESS GRID - Victoria en el 5º intento */}
+            <div className="flex justify-center w-full mb-8">
+              <GuessGrid guesses={["wrong", "partial", "wrong", "wrong", "correct"]} />
+            </div>
+
             <Clues clues={gameStep3Win} />
           </section>
         </div>
