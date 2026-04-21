@@ -9,10 +9,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-
         spotydle: "#E24F9C", 
-        
- 
         sp: {
           lightest: "#D9D9D9",
           light: "#B5B5B5",
@@ -20,14 +17,21 @@ const config: Config = {
           dark: "#525252",
           darkest: "#353535",
         },
-
-       
         guess: {
           correct: "#4FE24F",   
           partial: "#E2D64F",   
           wrong: "#CF0000",     
         }
       },
+      keyframes: {
+        sound: {
+          '0%, 100%': { transform: 'scaleY(0.3)' },
+          '50%': { transform: 'scaleY(1)' },
+        }
+      },
+      animation: {
+        sound: 'sound 1.2s ease-in-out infinite',
+      }
     },
   },
   plugins: [],
