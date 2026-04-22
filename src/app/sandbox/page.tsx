@@ -9,11 +9,13 @@ import Clues, { Clue } from '@/components/game/Clues';
 import AudioPlayer from '@/components/game/Audioplayer';
 import GuessGrid from '@/components/game/GuessGrid';
 import WinModal from '@/components/game/WinModal'; 
-// 1. IMPORTAMOS EL GAMEINPUT Y SU INTERFAZ
 import GameInput, { SongSuggestion } from '@/components/game/GameInput';
 
+// 1. IMPORTAMOS EL CEREBRO
+import { useGame } from '@/context/GameContext';
+
 // ==========================================
-// SIMULACIÓN DE PARTIDA: "Linkin Park - In The End"
+// ARRAYS ESTÁTICOS PARA EL STORYTELLING (Se quedan igual)
 // ==========================================
 
 const gameStep1Start: Clue[] = [
@@ -26,28 +28,20 @@ const gameStep1Start: Clue[] = [
 ];
 
 const gameStep2Midgame: Clue[] = [
-  { id: 1, type: "audio", label: "0:00 - 0:05", status: "failed", duration: 5, 
-    userGuess: { artist: "Evanescence", artistCorrect: false, song: "Bring Me To Life", songCorrect: false } },
-  { id: 2, type: "info", label: "Ficha Técnica", status: "failed", infoData: [{ label: "Año", value: 2001 }, { label: "Género", value: "Nu Metal" }, { label: "BPM", value: 105 }], 
-    userGuess: { artist: "Linkin Park", artistCorrect: true, song: "Numb", songCorrect: false } },
-  { id: 3, type: "audio", label: "0:00 - 0:10", status: "failed", duration: 10, 
-    userGuess: { artist: "Limp Bizkit", artistCorrect: false, song: "Break Stuff", songCorrect: false } },
+  { id: 1, type: "audio", label: "0:00 - 0:05", status: "failed", duration: 5, userGuess: { artist: "Evanescence", artistCorrect: false, song: "Bring Me To Life", songCorrect: false } },
+  { id: 2, type: "info", label: "Ficha Técnica", status: "failed", infoData: [{ label: "Año", value: 2001 }, { label: "Género", value: "Nu Metal" }, { label: "BPM", value: 105 }], userGuess: { artist: "Linkin Park", artistCorrect: true, song: "Numb", songCorrect: false } },
+  { id: 3, type: "audio", label: "0:00 - 0:10", status: "failed", duration: 10, userGuess: { artist: "Limp Bizkit", artistCorrect: false, song: "Break Stuff", songCorrect: false } },
   { id: 4, type: "info", label: "Vibe Check", status: "active", infoData: [{ label: "Popularidad", value: "Alta" }, { label: "Energía", value: "9/10" }] },
   { id: 5, type: "visual", label: "Portada", status: "locked", imageUrl: "https://i.scdn.co/image/ab67616d0000b273e8b066f70c206551210d902b", blurLevel: 15 },
   { id: 6, type: "audio", label: "0:00 - 0:30", status: "locked", duration: 30 },
 ];
 
 const gameStep3Win: Clue[] = [
-  { id: 1, type: "audio", label: "0:00 - 0:05", status: "failed", duration: 5, 
-    userGuess: { artist: "Evanescence", artistCorrect: false, song: "Bring Me To Life", songCorrect: false } },
-  { id: 2, type: "info", label: "Ficha Técnica", status: "failed", infoData: [{ label: "Año", value: 2001 }, { label: "Género", value: "Nu Metal" }, { label: "BPM", value: 105 }], 
-    userGuess: { artist: "Linkin Park", artistCorrect: true, song: "Numb", songCorrect: false } },
-  { id: 3, type: "audio", label: "0:00 - 0:10", status: "failed", duration: 10, 
-    userGuess: { artist: "Limp Bizkit", artistCorrect: false, song: "Break Stuff", songCorrect: false } },
-  { id: 4, type: "info", label: "Vibe Check", status: "failed", infoData: [{ label: "Popularidad", value: "Alta" }, { label: "Energía", value: "9/10" }],
-    userGuess: { artist: "Linkin Park", artistCorrect: true, song: "Crawling", songCorrect: false } },
-  { id: 5, type: "visual", label: "Portada", status: "completed", imageUrl: "https://i.scdn.co/image/ab67616d0000b273e8b066f70c206551210d902b", blurLevel: 0,
-    userGuess: { artist: "Linkin Park", artistCorrect: true, song: "In The End", songCorrect: true } },
+  { id: 1, type: "audio", label: "0:00 - 0:05", status: "failed", duration: 5, userGuess: { artist: "Evanescence", artistCorrect: false, song: "Bring Me To Life", songCorrect: false } },
+  { id: 2, type: "info", label: "Ficha Técnica", status: "failed", infoData: [{ label: "Año", value: 2001 }, { label: "Género", value: "Nu Metal" }, { label: "BPM", value: 105 }], userGuess: { artist: "Linkin Park", artistCorrect: true, song: "Numb", songCorrect: false } },
+  { id: 3, type: "audio", label: "0:00 - 0:10", status: "failed", duration: 10, userGuess: { artist: "Limp Bizkit", artistCorrect: false, song: "Break Stuff", songCorrect: false } },
+  { id: 4, type: "info", label: "Vibe Check", status: "failed", infoData: [{ label: "Popularidad", value: "Alta" }, { label: "Energía", value: "9/10" }], userGuess: { artist: "Linkin Park", artistCorrect: true, song: "Crawling", songCorrect: false } },
+  { id: 5, type: "visual", label: "Portada", status: "completed", imageUrl: "https://i.scdn.co/image/ab67616d0000b273e8b066f70c206551210d902b", blurLevel: 0, userGuess: { artist: "Linkin Park", artistCorrect: true, song: "In The End", songCorrect: true } },
   { id: 6, type: "audio", label: "0:00 - 0:30", status: "locked", duration: 30 },
 ];
 
@@ -57,7 +51,7 @@ const mockWinData = {
   coverUrl: "https://i.scdn.co/image/ab67616d0000b273e8b066f70c206551210d902b"
 };
 
-// 2. BASE DE DATOS FALSA PARA PROBAR EL BUSCADOR
+// 2. BASE DE DATOS FALSA ACTUALIZADA (Añadido Numb)
 const mockDatabase: SongSuggestion[] = [
   { id: '1', artist: 'Bad Bunny', title: 'Monaco' },
   { id: '2', artist: 'Saiko', title: 'Supernova' },
@@ -65,21 +59,27 @@ const mockDatabase: SongSuggestion[] = [
   { id: '4', artist: 'Feid', title: 'Luna' },
   { id: '5', artist: 'Bad Gyal', title: 'Chulo' },
   { id: '6', artist: 'Rauw Alejandro', title: 'Todo de ti' },
-  { id: '7', artist: 'Bad Bunny & Feid', title: 'Perro Negro' }
+  { id: '7', artist: 'Bad Bunny & Feid', title: 'Perro Negro' },
+  { id: '8', artist: 'Linkin Park', title: 'In The End' }, 
+  { id: '9', artist: 'Linkin Park', title: 'Numb' }
 ];
 
 export default function SandboxPage() {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isWinModalOpen, setIsWinModalOpen] = useState(false);
+  // NOS CONECTAMOS AL CEREBRO
+  const { guesses, submitGuess, skipTurn, gameState, targetSong } = useGame();
 
-  // 3. ESTADOS PARA CONTROLAR EL INPUT DE BÚSQUEDA
+  const [isPlaying, setIsPlaying] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const [suggestions, setSuggestions] = useState<SongSuggestion[]>([]);
+  
+  // ESTADO PARA LA CANCIÓN OFICIALMENTE SELECCIONADA
+  const [selectedSong, setSelectedSong] = useState<SongSuggestion | null>(null);
 
-  // 4. LÓGICA DE FILTRADO LOCAL
+  // LÓGICA DE BÚSQUEDA DEL INPUT
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setSearchValue(val);
+    setSelectedSong(null); // Anulamos la selección si el usuario vuelve a teclear
     
     if (val.length > 0) {
       const filtered = mockDatabase.filter(
@@ -92,20 +92,32 @@ export default function SandboxPage() {
     }
   };
 
+  // LÓGICA DE ENVÍO ESTRICTA
+  const handleGuessSubmit = () => {
+    if (!selectedSong) return; // Cortafuegos: Si no hay objeto de canción, no hacemos nada
+
+    submitGuess(selectedSong.artist, selectedSong.title);
+    
+    // Limpiamos los estados después de adivinar
+    setSearchValue(""); 
+    setSelectedSong(null);
+  };
+
   const intents = ["primary", "outline", "secondary", "ghost"] as const;
   const sizes = ["sm", "default", "lgRounded", "lgSquare", "icon"] as const;
 
   return (
     <div className="min-h-screen p-6 md:p-10 bg-black text-white flex flex-col items-center pt-20 gap-20 pb-40">
       
+      {/* EL MODAL AHORA ESCUCHA AL CEREBRO */}
       <WinModal 
-        isOpen={isWinModalOpen} 
-        songData={mockWinData} 
-        guesses={["wrong", "partial", "wrong", "wrong", "correct"]}
-        onBackToMenu={() => setIsWinModalOpen(false)} 
+        isOpen={gameState === 'won'} 
+        songData={targetSong || mockWinData} 
+        guesses={guesses}
+        onBackToMenu={() => window.location.reload()} // Reiniciamos la página para jugar otra vez
       />
 
-      {/* 1. SECCIÓN DE JUEGO PRINCIPAL */}
+      {/* --- SECCIÓN DE JUEGO PRINCIPAL --- */}
       <div className="w-full max-w-md">
         <h1 className="text-3xl font-bold mb-10 text-spotydle text-center">Spotydle Game View</h1>
         
@@ -113,13 +125,14 @@ export default function SandboxPage() {
           
           <div className="flex items-center justify-between p-6 pb-2">
             <span className="text-spotydle font-black tracking-widest text-lg">SPOTYDLE</span>
-            <span className="text-gray-500 text-sm font-bold bg-black/50 px-3 py-1 rounded-full">1/6 Tries</span>
+            <span className="text-gray-500 text-sm font-bold bg-black/50 px-3 py-1 rounded-full">{guesses.length}/6 Tries</span>
           </div>
 
           <div className="p-6 pt-2 flex flex-col gap-6">
             
             <div className="flex justify-center w-full">
-              <GuessGrid guesses={[]} />
+              {/* EL GRID AHORA RECIBE LOS DATOS REALES */}
+              <GuessGrid guesses={guesses} />
             </div>
 
             <AudioPlayer 
@@ -131,9 +144,13 @@ export default function SandboxPage() {
 
             <Clues clues={gameStep1Start} />
             
-            {/* 5. NUEVA BARRA DE CONTROLES INFERIOR CON GAMEINPUT */}
+            {/* BARRA DE CONTROLES INFERIOR */}
             <div className="flex items-center gap-3 mt-4 h-12 w-full z-50">
-              <Button intent="outline" className="h-full px-6 font-bold tracking-widest text-gray-400 border-gray-600">
+              <Button 
+                onClick={skipTurn} 
+                intent="outline" 
+                className="h-full px-6 font-bold tracking-widest text-gray-400 border-gray-600"
+              >
                 SKIP
               </Button>
               
@@ -143,11 +160,21 @@ export default function SandboxPage() {
                 suggestions={suggestions}
                 onSelect={(song) => {
                   setSearchValue(`${song.artist} - ${song.title}`);
+                  setSelectedSong(song);
                   setSuggestions([]);
                 }}
               />
               
-              <Button intent="primary" className="h-full px-6 font-bold text-black tracking-widest">
+              <Button 
+                onClick={handleGuessSubmit} 
+                disabled={!selectedSong}
+                intent="primary" 
+                className={`h-full px-6 font-bold tracking-widest transition-all ${
+                  !selectedSong 
+                    ? 'opacity-30 cursor-not-allowed bg-gray-700 text-gray-500' 
+                    : 'text-black opacity-100' 
+                }`}
+              >
                 GUESS
               </Button>
             </div>
@@ -183,12 +210,6 @@ export default function SandboxPage() {
             </div>
 
             <Clues clues={gameStep3Win} />
-            
-            <div className="mt-10 flex justify-center border-t border-gray-800 pt-8">
-              <Button intent="primary" size="lgRounded" onClick={() => setIsWinModalOpen(true)}>
-                ✨ Simular Pantalla de Victoria ✨
-              </Button>
-            </div>
           </section>
         </div>
       </div>
