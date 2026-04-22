@@ -64,7 +64,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     { id: 5, type: "visual", label: "Portada", imageUrl: targetSong?.coverUrl || "", blurLevel: 15, status: "locked" },
     { id: 6, type: "audio", label: "0:00 - 0:30", duration: 30, status: "locked" },
   ].map((clue, index) => {
-    const baseClue = { ...clue };
+    const baseClue = { ...clue } as Clue;
 
     // 1. Inyectamos texto del usuario
     if (guessDetails[index]) baseClue.userGuess = guessDetails[index];
@@ -82,7 +82,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     }
 
     // 4. Gestión específica del blur de la portada
-    if (clue.id === 5) {
+    if (baseClue.type === 'visual') {
       baseClue.blurLevel = gameState === 'won' ? 0 : 15;
     }
 
