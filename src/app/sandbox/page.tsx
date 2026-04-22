@@ -7,7 +7,9 @@ import LoginForm from '@/components/auth/LoginForm';
 import RegisterForm from '@/components/auth/RegisterForm';
 import Clues, { Clue } from '@/components/game/Clues';
 import AudioPlayer from '@/components/game/Audioplayer';
-import GuessGrid from '@/components/game/GuessGrid'; // IMPORTAMOS EL GUESSGRID
+import GuessGrid from '@/components/game/GuessGrid';
+// 1. IMPORTAMOS EL MODAL
+import WinModal from '@/components/game/WinModal'; 
 
 // ==========================================
 // SIMULACIÓN DE PARTIDA: "Linkin Park - In The End"
@@ -48,9 +50,18 @@ const gameStep3Win: Clue[] = [
   { id: 6, type: "audio", label: "0:00 - 0:30", status: "locked", duration: 30 },
 ];
 
+// 2. DATOS FALSOS PARA EL MODAL
+const mockWinData = {
+  title: "In The End",
+  artist: "Linkin Park",
+  coverUrl: "https://i.scdn.co/image/ab67616d0000b273e8b066f70c206551210d902b"
+};
 
 export default function SandboxPage() {
   const [isPlaying, setIsPlaying] = useState(false);
+  
+  // 3. ESTADO PARA CONTROLAR EL MODAL
+  const [isWinModalOpen, setIsWinModalOpen] = useState(false);
 
   const intents = ["primary", "outline", "secondary", "ghost"] as const;
   const sizes = ["sm", "default", "lgRounded", "lgSquare", "icon"] as const;
@@ -58,6 +69,13 @@ export default function SandboxPage() {
   return (
     <div className="min-h-screen p-6 md:p-10 bg-black text-white flex flex-col items-center pt-20 gap-20 pb-40">
       
+      {/* 4. RENDERIZAMOS EL MODAL (Oculto por defecto hasta que el estado cambie) */}
+      <WinModal 
+        isOpen={isWinModalOpen} 
+        songData={mockWinData} 
+        onBackToMenu={() => setIsWinModalOpen(false)} 
+      />
+
       {/* 1. SECCIÓN DE JUEGO PRINCIPAL */}
       <div className="w-full max-w-md">
         <h1 className="text-3xl font-bold mb-10 text-spotydle text-center">Spotydle Game View</h1>
@@ -120,6 +138,13 @@ export default function SandboxPage() {
             </div>
 
             <Clues clues={gameStep3Win} />
+            
+            {/* 5. BOTÓN DISPARADOR PARA VER EL MODAL */}
+            <div className="mt-10 flex justify-center border-t border-gray-800 pt-8">
+              <Button intent="primary" size="lgRounded" onClick={() => setIsWinModalOpen(true)}>
+                ✨ Simular Pantalla de Victoria ✨
+              </Button>
+            </div>
           </section>
         </div>
       </div>
