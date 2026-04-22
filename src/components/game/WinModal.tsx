@@ -12,28 +12,27 @@ interface WinModalProps {
     coverUrl: string;
   };
   guesses: GuessResult[];
+  hasWon: boolean;
   onBackToMenu: () => void;
 }
 
-const WinModal: React.FC<WinModalProps> = ({ isOpen, songData, guesses = [], onBackToMenu }) => {
+const WinModal: React.FC<WinModalProps> = ({ isOpen, songData, guesses = [], hasWon, onBackToMenu }) => {
 
   const generateEmojiGrid = () => {
     const emojiMap: Record<GuessResult, string> = {
       correct: "🟩",
       partial: "🟨",
       wrong: "🟥",
-      empty: "⬛" // Cuadradito negro para los intentos no usados
+      empty: "⬛"
     };
 
-    // Rellenamos hasta 6 para que siempre salgan los 6 bloques
     const fullGrid = Array.from({ length: 6 }).map((_, i) => guesses[i] || "empty");
     return fullGrid.map(status => emojiMap[status]).join("");
   };
 
-  // Calculamos en qué intento ha acertado (la longitud del array sin contar los vacíos)
-  const attemptCount = guesses.filter(g => g !== "empty").length;
+  // Si ha perdido, el count será "X/6". Si ha ganado, será el número de intentos.
+  const attemptCount = hasWon ? guesses.filter(g => g !== "empty").length : "X";
   
-
   const shareText = `Spotydle 🎵 - ${attemptCount}/6\n\n${generateEmojiGrid()}\n\n¿Puedes superarlo? Juega aquí:`;
   const shareUrl = "https://spotydle.com";
 
@@ -46,24 +45,20 @@ const WinModal: React.FC<WinModalProps> = ({ isOpen, songData, guesses = [], onB
           url: shareUrl,
         });
       } catch (error) {
-        console.log('Error compartiendo o el usuario canceló', error);
+        console.log('Error compartiendo', error);
       }
     } else {
-      // Fallback para escritorio: Copiar al portapapeles
       navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
       alert("¡Resultados copiados al portapapeles!"); 
-      // En el futuro puedes cambiar este alert por un Toast chulo de tu UI Kit
     }
   };
 
   const handleTwitterShare = () => {
-    // La URL oficial de X/Twitter para pre-rellenar un tweet
     const twitterIntent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
     window.open(twitterIntent, '_blank', 'noopener,noreferrer');
   };
 
   const handleFacebookShare = () => {
-    // Facebook solo acepta la URL a compartir, el texto lo saca del meta-tag de tu web
     const facebookIntent = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
     window.open(facebookIntent, '_blank', 'noopener,noreferrer');
   };
@@ -88,8 +83,19 @@ const WinModal: React.FC<WinModalProps> = ({ isOpen, songData, guesses = [], onB
             className="relative z-10 w-full max-w-sm flex flex-col items-center"
           >
             
-            {/* TARJETA DE LA CANCIÓN */}
-            <div className="w-full bg-[#2A2A2A] rounded-[2.5rem] p-8 border border-spotydle shadow-[0_0_40px_rgba(233,64,150,0.4)] flex flex-col items-center mb-10">
+            {/* TÍTULO DINÁMICO (Gana o Pierde) */}
+            <h1 className={`text-4xl font-black mb-8 tracking-widest text-center ${
+              hasWon 
+                ? 'text-green-400 drop-shadow-[0_0_15px_rgba(74,222,128,0.5)]' 
+                : 'text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]'
+            }`}>
+              {hasWon ? 'YOU WIN!' : 'GAME OVER'}
+            </h1>
+
+            {/* TARJETA DE LA CANCIÓN (Cambia el color del borde según el resultado) */}
+            <div className={`w-full bg-[#2A2A2A] rounded-[2.5rem] p-8 border shadow-2xl flex flex-col items-center mb-10 transition-colors ${
+              hasWon ? 'border-green-400/50 shadow-[0_0_40px_rgba(74,222,128,0.2)]' : 'border-red-500/50 shadow-[0_0_40px_rgba(239,68,68,0.2)]'
+            }`}>
               <Image 
                 src={songData.coverUrl} 
                 alt={`${songData.artist} - ${songData.title}`} 
@@ -104,32 +110,17 @@ const WinModal: React.FC<WinModalProps> = ({ isOpen, songData, guesses = [], onB
 
             {/* BOTONES SOCIALES */}
             <div className="flex items-center justify-center gap-6 mb-12">
-              <button 
-                onClick={handleGenericShare}
-                className="w-16 h-16 rounded-full bg-primary flex items-center justify-center shadow-[0_0_20px_rgba(233,64,150,0.6)] active:scale-95 transition-transform hover:scale-105"
-                aria-label="Compartir resultados"
-              >
+              <button onClick={handleGenericShare} className="w-16 h-16 rounded-full bg-primary flex items-center justify-center shadow-[0_0_20px_rgba(233,64,150,0.6)] active:scale-95 transition-transform hover:scale-105" aria-label="Compartir resultados">
                 <Share2 size={28} className="text-white" />
               </button>
-              
-              <button 
-                onClick={handleTwitterShare}
-                className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.4)] active:scale-95 transition-transform hover:scale-105"
-                aria-label="Compartir en Twitter"
-              >
+              <button onClick={handleTwitterShare} className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.4)] active:scale-95 transition-transform hover:scale-105" aria-label="Compartir en Twitter">
                  <Twitter size={28} className="text-black" />
               </button>
-              
-              <button 
-                onClick={handleFacebookShare}
-                className="w-16 h-16 rounded-full bg-[#4267B2] flex items-center justify-center shadow-[0_0_20px_rgba(66,103,178,0.5)] active:scale-95 transition-transform hover:scale-105"
-                aria-label="Compartir en Facebook"
-              >
+              <button onClick={handleFacebookShare} className="w-16 h-16 rounded-full bg-[#4267B2] flex items-center justify-center shadow-[0_0_20px_rgba(66,103,178,0.5)] active:scale-95 transition-transform hover:scale-105" aria-label="Compartir en Facebook">
                 <Facebook size={32} className="text-white" />
               </button>
             </div>
 
-   
             <button 
               onClick={onBackToMenu}
               className="w-[80%] py-4 rounded-full bg-primary text-white font-extrabold tracking-wide text-xl shadow-[0_0_25px_rgba(233,64,150,0.6)] active:scale-95 transition-transform hover:scale-105"

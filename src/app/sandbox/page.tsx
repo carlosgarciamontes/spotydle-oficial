@@ -111,7 +111,8 @@ export default function SandboxPage() {
       
       {/* EL MODAL AHORA ESCUCHA AL CEREBRO */}
       <WinModal 
-        isOpen={gameState === 'won'} 
+        isOpen={gameState === 'won' || gameState === 'lost'}
+        hasWon={gameState === 'won'} 
         songData={targetSong || mockWinData} 
         guesses={guesses}
         onBackToMenu={() => window.location.reload()} // Reiniciamos la página para jugar otra vez
