@@ -89,7 +89,7 @@ const WinModal: React.FC<WinModalProps> = ({ isOpen, songData, guesses = [], onB
           >
             
             {/* TARJETA DE LA CANCIÓN */}
-            <div className="w-full bg-[#2A2A2A] rounded-[2.5rem] p-8 border border-primary shadow-[0_0_40px_rgba(233,64,150,0.4)] flex flex-col items-center mb-10">
+            <div className="w-full bg-[#2A2A2A] rounded-[2.5rem] p-8 border border-spotydle shadow-[0_0_40px_rgba(233,64,150,0.4)] flex flex-col items-center mb-10">
               <Image 
                 src={songData.coverUrl} 
                 alt={`${songData.artist} - ${songData.title}`} 
