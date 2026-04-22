@@ -73,6 +73,7 @@ export default function SandboxPage() {
       <WinModal 
         isOpen={isWinModalOpen} 
         songData={mockWinData} 
+        guesses={["wrong", "partial", "wrong", "wrong", "correct"]}
         onBackToMenu={() => setIsWinModalOpen(false)} 
       />
 
