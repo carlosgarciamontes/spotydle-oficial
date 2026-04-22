@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Lock, X, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import Image from 'next/image'; // <-- AÑADIDO
+import Image from 'next/image';
 
 export type ClueStatus = "locked" | "active" | "completed" | "failed" | "partial";
 
@@ -120,31 +120,44 @@ const Clues: React.FC<CluesProps> = ({ clues, onClueClick, className }) => {
               {(clue.status === "failed" || clue.status === "partial") && clue.userGuess && (
                 <div className="flex flex-col md:flex-row items-end md:items-center gap-0.5 md:gap-2 text-[10px] md:text-xs max-w-[120px] md:max-w-[220px]">
                   
-                  <div className="flex items-center gap-1 min-w-0">
-                    <span className={cn(
-                      "w-1.5 h-1.5 rounded-full shrink-0",
-                      clue.userGuess.artistCorrect ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
-                    )}></span>
-                    <span className={cn(
-                      "truncate font-bold",
-                      clue.userGuess.artistCorrect ? "text-gray-200" : "text-gray-400"
-                    )}>
-                      {clue.userGuess.artist}
-                    </span>
-                  </div>
+                  {/* --- DISEÑO EXCLUSIVO PARA SKIP --- */}
+                  {clue.userGuess.artist === "Skipped" ? (
+                    <div className="flex items-center gap-1 min-w-0">
+                      <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"></span>
+                      <span className="truncate italic font-medium text-gray-500">
+                        Skipped
+                      </span>
+                    </div>
+                  ) : (
+                    /* --- DISEÑO NORMAL (ARTISTA Y CANCIÓN) --- */
+                    <>
+                      <div className="flex items-center gap-1 min-w-0">
+                        <span className={cn(
+                          "w-1.5 h-1.5 rounded-full shrink-0",
+                          clue.userGuess.artistCorrect ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
+                        )}></span>
+                        <span className={cn(
+                          "truncate font-bold",
+                          clue.userGuess.artistCorrect ? "text-gray-200" : "text-gray-400"
+                        )}>
+                          {clue.userGuess.artist}
+                        </span>
+                      </div>
 
-                  <div className="flex items-center gap-1 min-w-0">
-                    <span className={cn(
-                      "w-1.5 h-1.5 rounded-full shrink-0",
-                      clue.userGuess.songCorrect ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
-                    )}></span>
-                    <span className={cn(
-                      "truncate italic",
-                      clue.userGuess.songCorrect ? "text-gray-300 font-semibold" : "text-gray-500"
-                    )}>
-                      {clue.userGuess.song}
-                    </span>
-                  </div>
+                      <div className="flex items-center gap-1 min-w-0">
+                        <span className={cn(
+                          "w-1.5 h-1.5 rounded-full shrink-0",
+                          clue.userGuess.songCorrect ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
+                        )}></span>
+                        <span className={cn(
+                          "truncate italic",
+                          clue.userGuess.songCorrect ? "text-gray-300 font-semibold" : "text-gray-500"
+                        )}>
+                          {clue.userGuess.song}
+                        </span>
+                      </div>
+                    </>
+                  )}
 
                 </div>
               )}

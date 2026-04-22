@@ -84,7 +84,7 @@ export default function SandboxPage() {
           
           <div className="flex items-center justify-between p-6 pb-2">
             <span className="text-spotydle font-black tracking-widest text-lg">SPOTYDLE</span>
-            <span className="text-gray-500 text-sm font-bold bg-black/50 px-3 py-1 rounded-full">{guesses.length + 1}/6 Tries</span>
+            <span className="text-gray-500 text-sm font-bold bg-black/50 px-3 py-1 rounded-full">{guesses.length}/6 Tries</span>
           </div>
 
           <div className="p-6 pt-2 flex flex-col gap-6">
