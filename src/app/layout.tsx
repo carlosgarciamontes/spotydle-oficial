@@ -4,7 +4,7 @@ import "./globals.css";
 import BottomNav from "@/components/layout/BottomNav";
 import RegisterForm from "@/components/auth/RegisterForm";
 import LoginForm from "@/components/auth/LoginForm";
-
+import { GameProvider } from "@/context/GameContext"; // Importación correcta
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,13 +21,14 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={`${inter.className} text-white bg-black min-h-screen`}>
-        <main className="pb-20">
-          {children}
-          <RegisterForm />
-          <LoginForm />
-        </main>
-
-        <BottomNav />
+        <GameProvider>
+          <main className="pb-20">
+            {children}
+            <RegisterForm />
+            <LoginForm />
+          </main>
+          <BottomNav />
+        </GameProvider>
       </body>
     </html>
   );
