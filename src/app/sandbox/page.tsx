@@ -8,8 +8,9 @@ import RegisterForm from '@/components/auth/RegisterForm';
 import Clues, { Clue } from '@/components/game/Clues';
 import AudioPlayer from '@/components/game/Audioplayer';
 import GuessGrid from '@/components/game/GuessGrid';
-// 1. IMPORTAMOS EL MODAL
 import WinModal from '@/components/game/WinModal'; 
+// 1. IMPORTAMOS EL GAMEINPUT Y SU INTERFAZ
+import GameInput, { SongSuggestion } from '@/components/game/GameInput';
 
 // ==========================================
 // SIMULACIÓN DE PARTIDA: "Linkin Park - In The End"
@@ -50,18 +51,46 @@ const gameStep3Win: Clue[] = [
   { id: 6, type: "audio", label: "0:00 - 0:30", status: "locked", duration: 30 },
 ];
 
-// 2. DATOS FALSOS PARA EL MODAL
 const mockWinData = {
   title: "In The End",
   artist: "Linkin Park",
   coverUrl: "https://i.scdn.co/image/ab67616d0000b273e8b066f70c206551210d902b"
 };
 
+// 2. BASE DE DATOS FALSA PARA PROBAR EL BUSCADOR
+const mockDatabase: SongSuggestion[] = [
+  { id: '1', artist: 'Bad Bunny', title: 'Monaco' },
+  { id: '2', artist: 'Saiko', title: 'Supernova' },
+  { id: '3', artist: 'Quevedo', title: 'Columbia' },
+  { id: '4', artist: 'Feid', title: 'Luna' },
+  { id: '5', artist: 'Bad Gyal', title: 'Chulo' },
+  { id: '6', artist: 'Rauw Alejandro', title: 'Todo de ti' },
+  { id: '7', artist: 'Bad Bunny & Feid', title: 'Perro Negro' }
+];
+
 export default function SandboxPage() {
   const [isPlaying, setIsPlaying] = useState(false);
-  
-  // 3. ESTADO PARA CONTROLAR EL MODAL
   const [isWinModalOpen, setIsWinModalOpen] = useState(false);
+
+  // 3. ESTADOS PARA CONTROLAR EL INPUT DE BÚSQUEDA
+  const [searchValue, setSearchValue] = useState("");
+  const [suggestions, setSuggestions] = useState<SongSuggestion[]>([]);
+
+  // 4. LÓGICA DE FILTRADO LOCAL
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setSearchValue(val);
+    
+    if (val.length > 0) {
+      const filtered = mockDatabase.filter(
+        song => song.title.toLowerCase().includes(val.toLowerCase()) || 
+                song.artist.toLowerCase().includes(val.toLowerCase())
+      );
+      setSuggestions(filtered);
+    } else {
+      setSuggestions([]); 
+    }
+  };
 
   const intents = ["primary", "outline", "secondary", "ghost"] as const;
   const sizes = ["sm", "default", "lgRounded", "lgSquare", "icon"] as const;
@@ -69,7 +98,6 @@ export default function SandboxPage() {
   return (
     <div className="min-h-screen p-6 md:p-10 bg-black text-white flex flex-col items-center pt-20 gap-20 pb-40">
       
-      {/* 4. RENDERIZAMOS EL MODAL (Oculto por defecto hasta que el estado cambie) */}
       <WinModal 
         isOpen={isWinModalOpen} 
         songData={mockWinData} 
@@ -83,7 +111,6 @@ export default function SandboxPage() {
         
         <div className="flex flex-col border border-sp-dark rounded-[2.5rem] bg-[#121212] overflow-hidden shadow-2xl relative">
           
-          {/* Header de la App */}
           <div className="flex items-center justify-between p-6 pb-2">
             <span className="text-spotydle font-black tracking-widest text-lg">SPOTYDLE</span>
             <span className="text-gray-500 text-sm font-bold bg-black/50 px-3 py-1 rounded-full">1/6 Tries</span>
@@ -91,12 +118,10 @@ export default function SandboxPage() {
 
           <div className="p-6 pt-2 flex flex-col gap-6">
             
-            {/* GUESS GRID - Vista Principal (Vacío al empezar) */}
             <div className="flex justify-center w-full">
               <GuessGrid guesses={[]} />
             </div>
 
-            {/* AUDIO PLAYER */}
             <AudioPlayer 
               isPlaying={isPlaying} 
               onTogglePlay={() => setIsPlaying(!isPlaying)} 
@@ -104,8 +129,29 @@ export default function SandboxPage() {
             
             <div className="w-full h-px bg-white/5 my-2"></div>
 
-            {/* PISTAS */}
             <Clues clues={gameStep1Start} />
+            
+            {/* 5. NUEVA BARRA DE CONTROLES INFERIOR CON GAMEINPUT */}
+            <div className="flex items-center gap-3 mt-4 h-12 w-full z-50">
+              <Button intent="outline" className="h-full px-6 font-bold tracking-widest text-gray-400 border-gray-600">
+                SKIP
+              </Button>
+              
+              <GameInput 
+                value={searchValue}
+                onChange={handleSearchChange}
+                suggestions={suggestions}
+                onSelect={(song) => {
+                  setSearchValue(`${song.artist} - ${song.title}`);
+                  setSuggestions([]);
+                }}
+              />
+              
+              <Button intent="primary" className="h-full px-6 font-bold text-black tracking-widest">
+                GUESS
+              </Button>
+            </div>
+
           </div>
         </div>
       </div>
@@ -120,7 +166,6 @@ export default function SandboxPage() {
             <h2 className="text-lg font-bold text-gray-200 mb-2">Turno 4: Tensión en el ambiente</h2>
             <p className="text-sm text-gray-500 mb-8">Ha fallado 3 veces, pero en la pista 2 <span className="text-green-400 font-bold">acertó el artista (Linkin Park)</span>.</p>
             
-            {/* GUESS GRID - Turno 4 (Fallo, Parcial, Fallo) */}
             <div className="flex justify-center w-full mb-8">
               <GuessGrid guesses={["wrong", "partial", "wrong"]} />
             </div>
@@ -133,14 +178,12 @@ export default function SandboxPage() {
             <h2 className="text-lg font-bold text-green-400 mb-2">Turno 5: ¡Victoria Épica!</h2>
             <p className="text-sm text-gray-500 mb-8">La portada borrosa le dio la clave. Adivinó la canción y la pastilla central se corona con la respuesta correcta.</p>
             
-            {/* GUESS GRID - Victoria en el 5º intento */}
             <div className="flex justify-center w-full mb-8">
               <GuessGrid guesses={["wrong", "partial", "wrong", "wrong", "correct"]} />
             </div>
 
             <Clues clues={gameStep3Win} />
             
-            {/* 5. BOTÓN DISPARADOR PARA VER EL MODAL */}
             <div className="mt-10 flex justify-center border-t border-gray-800 pt-8">
               <Button intent="primary" size="lgRounded" onClick={() => setIsWinModalOpen(true)}>
                 ✨ Simular Pantalla de Victoria ✨
