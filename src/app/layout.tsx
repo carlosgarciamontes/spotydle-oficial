@@ -4,7 +4,7 @@ import "./globals.css";
 import BottomNav from "@/components/layout/BottomNav";
 import RegisterForm from "@/components/auth/RegisterForm";
 import LoginForm from "@/components/auth/LoginForm";
-import GameFooter from "@/components/game/GameFooter"
+
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({
-  children, 
+  children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
@@ -26,10 +26,8 @@ export default function RootLayout({
           <RegisterForm />
           <LoginForm />
         </main>
-        
-        
+
         <BottomNav />
-        <GameFooter />
       </body>
     </html>
   );
