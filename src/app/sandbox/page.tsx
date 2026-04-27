@@ -29,15 +29,12 @@ const mockDatabase: SongSuggestion[] = [
 ];
 
 export default function SandboxPage() {
-  // 1. EXTRAEMOS LAS PISTAS Y LA FUNCIÓN DIRECTAMENTE DEL CEREBRO
   const { guesses, clues, submitGuess, skipTurn, gameState, targetSong, checkAlreadyGuessed } = useGame();
 
-  const [isPlaying, setIsPlaying] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const [suggestions, setSuggestions] = useState<SongSuggestion[]>([]);
   const [selectedSong, setSelectedSong] = useState<SongSuggestion | null>(null);
 
-  // 2. USAMOS EL CEREBRO PARA LA COMPROBACIÓN
   const isAlreadyGuessed = selectedSong ? checkAlreadyGuessed(selectedSong.artist, selectedSong.title) : false;
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -93,14 +90,11 @@ export default function SandboxPage() {
               <GuessGrid guesses={guesses} />
             </div>
 
-            <AudioPlayer 
-              isPlaying={isPlaying} 
-              onTogglePlay={() => setIsPlaying(!isPlaying)} 
-            />
+            {/* REPRODUCTOR LIMPIO Y AUTÓNOMO */}
+            <AudioPlayer />
             
             <div className="w-full h-px bg-white/5 my-2"></div>
 
-            {/* LE PASAMOS LAS PISTAS DIRECTAMENTE DESDE EL CONTEXTO */}
             <Clues clues={clues} />
             
             <div className="flex items-center gap-3 mt-4 h-12 w-full z-50">
@@ -127,7 +121,6 @@ export default function SandboxPage() {
         </div>
       </div>
 
-      {/* --- STORYTELLING Y UI KITS (Igual que antes) --- */}
       <div className="w-full max-w-4xl mt-20">
         <h2 className="text-2xl font-bold mb-8 text-gray-400 border-b border-gray-800 pb-4">Game States (Storytelling)</h2>
         <div className="flex flex-col gap-12">
