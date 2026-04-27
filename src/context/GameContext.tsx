@@ -36,7 +36,8 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 const MOCK_TARGET_SONG: TargetSong = {
   artist: "Linkin Park",
   title: "In The End",
-  coverUrl: "https://i.scdn.co/image/ab67616d0000b273e8b066f70c206551210d902b"
+  coverUrl: "https://i.scdn.co/image/ab67616d0000b273e8b066f70c206551210d902b",
+  previewUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
 };
 
 export const GameProvider = ({ children }: { children: ReactNode }) => {
