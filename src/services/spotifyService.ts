@@ -78,7 +78,7 @@ export async function searchSongs(query: string) {
     const token = await getSpotifyToken();
 
     const response = await fetch(
-      `https://api.spotify.com/v1/search?q=$?q=${encodeURIComponent(query)}&type=track&limit=5`,
+      `https://api.spotify.com/v1/search?q=$?q=${encodeURIComponent(query)}&type=track&limit=10`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
