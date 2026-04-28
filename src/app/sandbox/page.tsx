@@ -12,6 +12,7 @@ import WinModal from '@/components/game/WinModal';
 import GameInput, { SongSuggestion } from '@/components/game/GameInput';
 
 import { useGame } from '@/context/GameContext';
+import { searchSongs } from '@/services/spotifyService';
 
 // ==========================================
 // ARRAYS ESTÁTICOS PARA EL STORYTELLING (Intactos)
@@ -22,12 +23,6 @@ const gameStep3Win: Clue[] = [ { id: 1, type: "audio", label: "0:00 - 0:05", sta
 
 const mockWinData = { title: "In The End", artist: "Linkin Park", coverUrl: "https://i.scdn.co/image/ab67616d0000b273e8b066f70c206551210d902b" };
 
-const mockDatabase: SongSuggestion[] = [
-  { id: '1', artist: 'Bad Bunny', title: 'Monaco' }, { id: '2', artist: 'Saiko', title: 'Supernova' }, { id: '3', artist: 'Quevedo', title: 'Columbia' },
-  { id: '4', artist: 'Feid', title: 'Luna' }, { id: '5', artist: 'Bad Gyal', title: 'Chulo' }, { id: '6', artist: 'Rauw Alejandro', title: 'Todo de ti' },
-  { id: '7', artist: 'Bad Bunny & Feid', title: 'Perro Negro' }, { id: '8', artist: 'Linkin Park', title: 'In The End' }, { id: '9', artist: 'Linkin Park', title: 'Numb' }
-];
-
 export default function SandboxPage() {
   const { guesses, clues, submitGuess, skipTurn, gameState, targetSong, checkAlreadyGuessed } = useGame();
 
@@ -37,17 +32,15 @@ export default function SandboxPage() {
 
   const isAlreadyGuessed = selectedSong ? checkAlreadyGuessed(selectedSong.artist, selectedSong.title) : false;
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setSearchValue(val);
     setSelectedSong(null);
     
-    if (val.length > 0) {
-      const filtered = mockDatabase.filter(
-        song => song.title.toLowerCase().includes(val.toLowerCase()) || 
-                song.artist.toLowerCase().includes(val.toLowerCase())
-      );
-      setSuggestions(filtered);
+    // Solo buscamos en Spotify si el usuario ha escrito más de 2 caracteres
+    if (val.length > 2) {
+      const results = await searchSongs(val);
+      setSuggestions(results);
     } else {
       setSuggestions([]); 
     }
@@ -90,7 +83,6 @@ export default function SandboxPage() {
               <GuessGrid guesses={guesses} />
             </div>
 
-            {/* REPRODUCTOR LIMPIO Y AUTÓNOMO */}
             <AudioPlayer />
             
             <div className="w-full h-px bg-white/5 my-2"></div>
