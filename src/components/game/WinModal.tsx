@@ -2,6 +2,7 @@ import React from 'react';
 import { Share2, Facebook, Twitter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GuessResult } from './GuessGrid';
+import Image from 'next/image';
 
 interface WinModalProps {
   isOpen: boolean;
@@ -92,10 +93,11 @@ const WinModal: React.FC<WinModalProps> = ({ isOpen, songData, guesses = [], has
             <div className={`w-full bg-[#2A2A2A] rounded-[2.5rem] p-8 border shadow-2xl flex flex-col items-center mb-10 transition-colors ${
               hasWon ? 'border-green-400/50 shadow-[0_0_40px_rgba(74,222,128,0.2)]' : 'border-red-500/50 shadow-[0_0_40px_rgba(239,68,68,0.2)]'
             }`}>
-              {/* SUSTITUIDO: Etiqueta nativa <img> en lugar del componente de Next.js */}
-              <img 
+              <Image 
                 src={songData.coverUrl} 
                 alt={`${songData.artist} - ${songData.title}`} 
+                width={400}
+                height={400}
                 className="w-full aspect-square rounded-[2rem] object-cover mb-12 shadow-inner"
               />
               <h2 className="text-white font-bold text-[1.1rem] text-center px-4 pb-2">
