@@ -1,7 +1,6 @@
 import React from 'react';
 import { Share2, Facebook, Twitter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Image from 'next/image';
 import { GuessResult } from './GuessGrid';
 
 interface WinModalProps {
@@ -30,7 +29,6 @@ const WinModal: React.FC<WinModalProps> = ({ isOpen, songData, guesses = [], has
     return fullGrid.map(status => emojiMap[status]).join("");
   };
 
-  // Si ha perdido, el count será "X/6". Si ha ganado, será el número de intentos.
   const attemptCount = hasWon ? guesses.filter(g => g !== "empty").length : "X";
   
   const shareText = `Spotydle 🎵 - ${attemptCount}/6\n\n${generateEmojiGrid()}\n\n¿Puedes superarlo? Juega aquí:`;
@@ -83,7 +81,6 @@ const WinModal: React.FC<WinModalProps> = ({ isOpen, songData, guesses = [], has
             className="relative z-10 w-full max-w-sm flex flex-col items-center"
           >
             
-            {/* TÍTULO DINÁMICO (Gana o Pierde) */}
             <h1 className={`text-4xl font-black mb-8 tracking-widest text-center ${
               hasWon 
                 ? 'text-green-400 drop-shadow-[0_0_15px_rgba(74,222,128,0.5)]' 
@@ -92,15 +89,13 @@ const WinModal: React.FC<WinModalProps> = ({ isOpen, songData, guesses = [], has
               {hasWon ? 'YOU WIN!' : 'GAME OVER'}
             </h1>
 
-            {/* TARJETA DE LA CANCIÓN (Cambia el color del borde según el resultado) */}
             <div className={`w-full bg-[#2A2A2A] rounded-[2.5rem] p-8 border shadow-2xl flex flex-col items-center mb-10 transition-colors ${
               hasWon ? 'border-green-400/50 shadow-[0_0_40px_rgba(74,222,128,0.2)]' : 'border-red-500/50 shadow-[0_0_40px_rgba(239,68,68,0.2)]'
             }`}>
-              <Image 
+              {/* SUSTITUIDO: Etiqueta nativa <img> en lugar del componente de Next.js */}
+              <img 
                 src={songData.coverUrl} 
                 alt={`${songData.artist} - ${songData.title}`} 
-                width={400} 
-                height={400}
                 className="w-full aspect-square rounded-[2rem] object-cover mb-12 shadow-inner"
               />
               <h2 className="text-white font-bold text-[1.1rem] text-center px-4 pb-2">
@@ -108,7 +103,6 @@ const WinModal: React.FC<WinModalProps> = ({ isOpen, songData, guesses = [], has
               </h2>
             </div>
 
-            {/* BOTONES SOCIALES */}
             <div className="flex items-center justify-center gap-6 mb-12">
               <button onClick={handleGenericShare} className="w-16 h-16 rounded-full bg-primary flex items-center justify-center shadow-[0_0_20px_rgba(233,64,150,0.6)] active:scale-95 transition-transform hover:scale-105" aria-label="Compartir resultados">
                 <Share2 size={28} className="text-white" />
