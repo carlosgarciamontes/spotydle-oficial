@@ -207,6 +207,7 @@ const Clues: React.FC<CluesProps> = ({ clues, onClueClick, className }) => {
             </button>
             
             <div className="w-full aspect-square relative rounded-[1.5rem] overflow-hidden bg-black">
+              {/* Vuelve el componente Image optimizado */}
               <Image 
                 src={imageModal.url} 
                 alt="Clue Cover" 
