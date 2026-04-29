@@ -1,14 +1,19 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { GuessResult } from '@/components/game/GuessGrid'; 
-import { Clue } from '@/components/game/Clues'; // <-- IMPORTAMOS LA INTERFAZ
+import { Clue } from '@/components/game/Clues';
+// Importamos la función de nuestro nuevo motor de música
+import { getRandomTrackGlobal } from '@/services/itunesService'; 
 
+// Ampliamos la interfaz para incluir el año y género que nos da iTunes
 export interface TargetSong {
   artist: string;
   title: string;
   coverUrl: string;
   previewUrl?: string; 
+  releaseYear?: number;
+  genre?: string;
 }
 
 export interface GuessDetail {
@@ -18,35 +23,48 @@ export interface GuessDetail {
   songCorrect: boolean;
 }
 
-// ACTUALIZAMOS EL CONTRATO QUE SE EXPORTA A LA APP
 interface GameContextType {
   targetSong: TargetSong | null;
   guesses: GuessResult[];
   guessDetails: GuessDetail[];
-  clues: Clue[]; // <-- EL CEREBRO AHORA PROVEE LAS PISTAS LISTAS PARA PINTAR
+  clues: Clue[]; 
   currentAttempt: number;
   gameState: 'playing' | 'won' | 'lost';
   submitGuess: (userArtist: string, userTitle: string) => void;
   skipTurn: () => void;
-  checkAlreadyGuessed: (artist: string, title: string) => boolean; // <-- NUEVA HERRAMIENTA
+  checkAlreadyGuessed: (artist: string, title: string) => boolean; 
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
-const MOCK_TARGET_SONG: TargetSong = {
-  artist: "Linkin Park",
-  title: "In The End",
-  coverUrl: "https://i.scdn.co/image/ab67616d0000b273e8b066f70c206551210d902b",
-  previewUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
-};
-
 export const GameProvider = ({ children }: { children: ReactNode }) => {
-  const [targetSong, setTargetSong] = useState<TargetSong | null>(MOCK_TARGET_SONG);
+  // Empezamos en null, sin mock
+  const [targetSong, setTargetSong] = useState<TargetSong | null>(null);
   const [guesses, setGuesses] = useState<GuessResult[]>([]);
   const [guessDetails, setGuessDetails] = useState<GuessDetail[]>([]);
   const [gameState, setGameState] = useState<'playing' | 'won' | 'lost'>('playing');
 
   const currentAttempt = guesses.length + 1;
+
+  // ==========================================
+  // CARGA INICIAL DE LA CANCIÓN DESDE ITUNES
+  // ==========================================
+  useEffect(() => {
+    async function initGame() {
+      const song = await getRandomTrackGlobal();
+      if (song) {
+        setTargetSong({
+          artist: song.artist,
+          title: song.title,
+          coverUrl: song.coverUrl,
+          previewUrl: song.previewUrl,
+          releaseYear: song.releaseYear,
+          genre: song.genre
+        });
+      }
+    }
+    initGame();
+  }, []);
 
   // --- LÓGICA DE NEGOCIO: VALIDACIÓN DE REPETIDOS ---
   const checkAlreadyGuessed = (artist: string, title: string) => {
@@ -59,7 +77,17 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   // --- LÓGICA DE NEGOCIO: MOTOR DE PISTAS DINÁMICAS ---
   const clues: Clue[] = [
     { id: 1, type: "audio", label: "0:00 - 0:05", duration: 5, status: "locked" },
-    { id: 2, type: "info", label: "Ficha Técnica", infoData: [{ label: "Año", value: 2000 }, { label: "Género", value: "Nu Metal" }], status: "locked" },
+    { 
+      id: 2, 
+      type: "info", 
+      label: "Ficha Técnica", 
+      // Inyectamos el Año y Género reales de la canción
+      infoData: [
+        { label: "Año", value: targetSong?.releaseYear || "---" }, 
+        { label: "Género", value: targetSong?.genre || "---" }
+      ], 
+      status: "locked" 
+    },
     { id: 3, type: "audio", label: "0:00 - 0:10", duration: 10, status: "locked" },
     { id: 4, type: "info", label: "Vibe Check", infoData: [{ label: "Popularidad", value: "Top 100" }], status: "locked" },
     { id: 5, type: "visual", label: "Portada", imageUrl: targetSong?.coverUrl || "", blurLevel: 15, status: "locked" },

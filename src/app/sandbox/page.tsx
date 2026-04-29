@@ -12,7 +12,7 @@ import WinModal from '@/components/game/WinModal';
 import GameInput, { SongSuggestion } from '@/components/game/GameInput';
 
 import { useGame } from '@/context/GameContext';
-import { searchSongs } from '@/services/spotifyService';
+import { searchSongsGlobal } from '@/services/itunesService'; 
 
 // ==========================================
 // ARRAYS ESTÁTICOS PARA EL STORYTELLING (Intactos)
@@ -37,9 +37,10 @@ export default function SandboxPage() {
     setSearchValue(val);
     setSelectedSong(null);
     
-    // Solo buscamos en Spotify si el usuario ha escrito más de 2 caracteres
+    // Solo buscamos si el usuario ha escrito más de 2 caracteres
     if (val.length > 2) {
-      const results = await searchSongs(val);
+      // 2. CAMBIO AQUÍ: Llamamos a la función de iTunes
+      const results = await searchSongsGlobal(val);
       setSuggestions(results);
     } else {
       setSuggestions([]); 
