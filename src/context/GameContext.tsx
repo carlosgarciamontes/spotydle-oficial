@@ -28,6 +28,16 @@ export interface GuessDetail {
   songCorrect: boolean;
 }
 
+// --- NUEVAS INTERFACES PARA ESTADÍSTICAS ---
+export interface GameStats {
+  gamesPlayed: number;
+  gamesWon: number;
+  currentStreak: number;
+  maxStreak: number;
+  distribution: number[]; // [Intento 1, Intento 2, ..., Intento 6]
+  lastCompletedDate: string | null;
+}
+
 interface GameContextType {
   targetSong: TargetSong | null;
   guesses: GuessResult[];
@@ -35,6 +45,7 @@ interface GameContextType {
   clues: Clue[];
   currentAttempt: number;
   gameState: "playing" | "won" | "lost";
+  stats: GameStats; // Añadimos stats al Contexto
   submitGuess: (userArtist: string, userTitle: string) => void;
   skipTurn: () => void;
   checkAlreadyGuessed: (artist: string, title: string) => boolean;
@@ -43,6 +54,16 @@ interface GameContextType {
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
 const STORAGE_KEY = "spotydle_daily_save";
+const STATS_STORAGE_KEY = "spotydle_stats";
+
+const DEFAULT_STATS: GameStats = {
+  gamesPlayed: 0,
+  gamesWon: 0,
+  currentStreak: 0,
+  maxStreak: 0,
+  distribution: [0, 0, 0, 0, 0, 0],
+  lastCompletedDate: null,
+};
 
 // Función para obtener la fecha de hoy en texto (ej: "2026-4-30")
 const getTodayDateString = () => {
@@ -58,11 +79,13 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   const [gameState, setGameState] = useState<"playing" | "won" | "lost">(
     "playing",
   );
+  // Estado para las estadísticas
+  const [stats, setStats] = useState<GameStats>(DEFAULT_STATS);
 
   const currentAttempt = guesses.length + 1;
 
   // ==========================================
-  // CARGA INICIAL: CANCIÓN Y PARTIDA GUARDADA
+  // CARGA INICIAL: CANCIÓN, PARTIDA Y ESTADÍSTICAS
   // ==========================================
   useEffect(() => {
     async function initGame() {
@@ -85,17 +108,25 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       if (savedData) {
         try {
           const parsedData = JSON.parse(savedData);
-          // Si la partida guardada es de hoy, restauramos el progreso
           if (parsedData.date === getTodayDateString()) {
             setGuesses(parsedData.guesses);
             setGuessDetails(parsedData.guessDetails);
             setGameState(parsedData.gameState);
           } else {
-            // Si es de un día anterior, limpiamos la basura
             localStorage.removeItem(STORAGE_KEY);
           }
         } catch (error) {
           console.error("Error leyendo el LocalStorage", error);
+        }
+      }
+
+      // 3. Cargamos las estadísticas históricas
+      const savedStats = localStorage.getItem(STATS_STORAGE_KEY);
+      if (savedStats) {
+        try {
+          setStats(JSON.parse(savedStats));
+        } catch (error) {
+          console.error("Error leyendo estadísticas", error);
         }
       }
     }
@@ -103,10 +134,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   // ==========================================
-  // AUTOGUARDADO EN LOCALSTORAGE
+  // AUTOGUARDADO DE LA PARTIDA ACTUAL
   // ==========================================
   useEffect(() => {
-    // Solo guardamos si ya se ha cargado la canción (para evitar sobreescribir con arrays vacíos por error)
     if (targetSong) {
       const saveData = {
         date: getTodayDateString(),
@@ -117,6 +147,41 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
     }
   }, [guesses, guessDetails, gameState, targetSong]);
+
+  // ==========================================
+  // MOTOR DE ESTADÍSTICAS
+  // ==========================================
+  const handleGameEnd = (finalState: "won" | "lost", totalAttempts: number) => {
+    const today = getTodayDateString();
+
+    setStats((prevStats) => {
+      // Si ya habíamos registrado la partida de hoy, evitamos duplicados
+      if (prevStats.lastCompletedDate === today) return prevStats;
+
+      const newStats = { ...prevStats };
+      newStats.gamesPlayed += 1;
+      newStats.lastCompletedDate = today;
+
+      if (finalState === "won") {
+        newStats.gamesWon += 1;
+        newStats.currentStreak += 1;
+        if (newStats.currentStreak > newStats.maxStreak) {
+          newStats.maxStreak = newStats.currentStreak;
+        }
+        
+        // Sumamos 1 al intento en el que ganó
+        const winIndex = Math.max(0, totalAttempts - 1);
+        newStats.distribution[winIndex] += 1;
+      } 
+      
+      if (finalState === "lost") {
+        newStats.currentStreak = 0; 
+      }
+
+      localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(newStats));
+      return newStats;
+    });
+  };
 
   // --- LÓGICA DE NEGOCIO: VALIDACIÓN DE REPETIDOS ---
   const checkAlreadyGuessed = (artist: string, title: string) => {
@@ -129,31 +194,18 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
   // --- LÓGICA DE NEGOCIO: MOTOR DE PISTAS DINÁMICAS ---
   const clues: Clue[] = [
-    {
-      id: 1,
-      type: "audio",
-      label: "0:00 - 0:05",
-      duration: 5,
-      status: "locked",
-    },
+    { id: 1, type: "audio", label: "0:00 - 0:05", duration: 5, status: "locked" },
     {
       id: 2,
       type: "info",
       label: "Ficha Técnica",
-      // Inyectamos el Año y Género reales de la canción
       infoData: [
         { label: "Año", value: targetSong?.releaseYear || "---" },
         { label: "Género", value: targetSong?.genre || "---" },
       ],
       status: "locked",
     },
-    {
-      id: 3,
-      type: "audio",
-      label: "0:00 - 0:10",
-      duration: 10,
-      status: "locked",
-    },
+    { id: 3, type: "audio", label: "0:00 - 0:10", duration: 10, status: "locked" },
     {
       id: 4,
       type: "info",
@@ -169,32 +221,21 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       blurLevel: 15,
       status: "locked",
     },
-    {
-      id: 6,
-      type: "audio",
-      label: "0:00 - 0:30",
-      duration: 30,
-      status: "locked",
-    },
+    { id: 6, type: "audio", label: "0:00 - 0:30", duration: 30, status: "locked" },
   ].map((clue, index) => {
     const baseClue = { ...clue } as Clue;
-
-    // 1. Inyectamos texto del usuario
     if (guessDetails[index]) baseClue.userGuess = guessDetails[index];
 
-    // 2. Estado base según el turno
     if (guesses.length === index) baseClue.status = "active";
     else if (guesses.length > index) baseClue.status = "failed";
     else baseClue.status = "locked";
 
-    // 3. Sobrescribir victorias y parciales
     if (gameState === "won" && index === guesses.length - 1) {
       baseClue.status = "completed";
     } else if (guesses[index] === "partial") {
       baseClue.status = "partial";
     }
 
-    // 4. Gestión específica del blur de la portada
     if (baseClue.type === "visual") {
       baseClue.blurLevel = gameState === "won" ? 0 : 15;
     }
@@ -210,16 +251,20 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       userTitle.toLowerCase().trim() === targetSong.title.toLowerCase().trim();
 
     let result: GuessResult;
+    let newGameState = gameState;
+
     if (artistMatch && titleMatch) {
       result = "correct";
-      setGameState("won");
+      newGameState = "won";
     } else if (artistMatch && !titleMatch) {
       result = "partial";
     } else {
       result = "wrong";
     }
 
-    setGuesses([...guesses, result]);
+    const newGuesses = [...guesses, result];
+    
+    setGuesses(newGuesses);
     setGuessDetails([
       ...guessDetails,
       {
@@ -230,15 +275,21 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       },
     ]);
 
-    if (guesses.length + 1 >= 6 && result !== "correct") {
-      setGameState("lost");
+    if (newGuesses.length >= 6 && result !== "correct") {
+      newGameState = "lost";
+    }
+
+    if (newGameState !== "playing") {
+      setGameState(newGameState);
+      handleGameEnd(newGameState, newGuesses.length);
     }
   };
 
   const skipTurn = () => {
     if (gameState !== "playing") return;
 
-    setGuesses([...guesses, "wrong"]);
+    const newGuesses: GuessResult[] = [...guesses, "wrong"];
+    setGuesses(newGuesses);
     setGuessDetails([
       ...guessDetails,
       {
@@ -249,8 +300,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       },
     ]);
 
-    if (guesses.length + 1 >= 6) {
+    if (newGuesses.length >= 6) {
       setGameState("lost");
+      handleGameEnd("lost", newGuesses.length);
     }
   };
 
@@ -263,6 +315,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         clues,
         currentAttempt,
         gameState,
+        stats,
         submitGuess,
         skipTurn,
         checkAlreadyGuessed,
@@ -285,16 +338,13 @@ const checkArtistMatch = (
   userArtist: string,
   targetArtist: string,
 ): boolean => {
-  // 1. Si son exactamente iguales, victoria rápida
   if (userArtist.toLowerCase().trim() === targetArtist.toLowerCase().trim())
     return true;
 
-  // 2. Función para normalizar y trocear a los artistas
   const normalizeAndSplit = (str: string) => {
     return (
       str
         .toLowerCase()
-        // Reemplazamos todos los separadores comunes por una simple coma
         .replace(/ feat\.? | ft\.? | & | y | x | \+ /gi, ",")
         .split(",")
         .map((a) => a.trim())
@@ -305,6 +355,5 @@ const checkArtistMatch = (
   const userParts = normalizeAndSplit(userArtist);
   const targetParts = normalizeAndSplit(targetArtist);
 
-  // 3. Comprobamos si AL MENOS uno de los artistas del usuario está en la canción objetivo
   return userParts.some((userPart) => targetParts.includes(userPart));
 };
