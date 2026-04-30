@@ -251,7 +251,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       userTitle.toLowerCase().trim() === targetSong.title.toLowerCase().trim();
 
     let result: GuessResult;
-    let newGameState = gameState;
+    let newGameState: "playing" | "won" | "lost" = gameState;
 
     if (artistMatch && titleMatch) {
       result = "correct";
