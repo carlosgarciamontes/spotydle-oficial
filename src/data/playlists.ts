@@ -1,4 +1,5 @@
 export const PLAYLISTS: Record<string, string[]> = {
+  //https://itunes.apple.com/search?term=NOMBRE_AQUI&entity=musicArtist&limit=1 
   neoperreo: [
     "Bad Gyal",
     "La Zowi",
@@ -33,7 +34,8 @@ export const PLAYLISTS: Record<string, string[]> = {
     "Nicky Jam",
     "Ivy Queen",
   ],
+  
   test_collab: [
-    "Karol G & Anuel AA",
+    "1712188003", //Biberon
   ]
 };
