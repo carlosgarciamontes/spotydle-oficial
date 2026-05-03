@@ -1,20 +1,50 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
 const LoginForm = () => {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  
+  // Estados para manejar la experiencia de usuario
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Intentando hacer login con:", { email, password });
+    setError('');
+    setIsLoading(true);
+
+    try {
+      // Llamamos a NextAuth con el proveedor de credenciales
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false, // Evitamos recargar la página para manejar el error nosotros
+      });
+
+      if (result?.error) {
+        setError('Email o contraseña incorrectos');
+      } else {
+        // Si hay éxito, redirigimos al juego
+        router.push('/sandbox'); 
+        router.refresh(); // Refrescamos para que el AuthProvider reconozca la sesión
+      }
+    } catch (err) {
+      setError('Ocurrió un error inesperado');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleLogin = () => {
-    console.log("Login con Google");
+    // Redirige directamente usando el proveedor de Google
+    signIn('google', { callbackUrl: '/sandbox' });
   };
 
   return (
@@ -58,6 +88,13 @@ const LoginForm = () => {
         </label>
       </div>
 
+      {/* Mensaje de error visual si fallan las credenciales */}
+      {error && (
+        <p className="text-red-500 text-sm font-semibold text-center animate-pulse">
+          {error}
+        </p>
+      )}
+
       <div className="h-2"></div>
 
       <Button 
@@ -76,8 +113,14 @@ const LoginForm = () => {
         Continue with Google
       </Button>
 
-      <Button type="submit" intent="primary" size="lgRounded" className="w-full justify-center shadow-none">
-        Sign in
+      <Button 
+        type="submit" 
+        intent="primary" 
+        size="lgRounded" 
+        disabled={isLoading}
+        className="w-full justify-center shadow-none disabled:opacity-50"
+      >
+        {isLoading ? 'Cargando...' : 'Sign in'}
       </Button>
     </form>
   );
