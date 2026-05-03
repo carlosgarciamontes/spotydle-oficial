@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
+  provider = "postgresql"
 }
 
 // ==========================================
@@ -51,7 +51,8 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
-  
+  password      String?   // <-- 2. AÑADIDO: Necesario para el CredentialsProvider
+
   accounts      Account[]
   sessions      Session[]
   

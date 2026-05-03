@@ -1,6 +1,7 @@
 import { config } from "dotenv";
-import { defineConfig } from "prisma/config";
+import { defineConfig } from "@prisma/config";
 
+// Forzamos la carga de las variables desde .env.local
 config({ path: ".env.local" });
 
 export default defineConfig({
@@ -9,6 +10,7 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env.DIRECT_URL,
+    // Apuntamos a la variable que tienes configurada para Neon
+    url: process.env.DATABASE_URL, 
   },
 });
