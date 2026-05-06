@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import BottomNav from "@/components/layout/BottomNav";
-import RegisterForm from "@/components/auth/RegisterForm";
-import LoginForm from "@/components/auth/LoginForm";
 import { GameProvider } from "@/context/GameContext";
 import AuthProvider from "@/components/auth/AuthProvider";
 
@@ -24,12 +21,9 @@ export default function RootLayout({
       <body className={`${inter.className} text-white bg-black min-h-screen`}>
         <AuthProvider>
         <GameProvider>
-          <main className="pb-20">
+          <main className="">
             {children}
-            <RegisterForm />
-            <LoginForm />
           </main>
-          <BottomNav />
         </GameProvider>
         </AuthProvider>
       </body>

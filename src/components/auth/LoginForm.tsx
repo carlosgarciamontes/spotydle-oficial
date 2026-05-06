@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
+import Link from 'next/link'; 
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
@@ -32,7 +33,7 @@ const LoginForm = () => {
         setError('Email o contraseña incorrectos');
       } else {
         // Si hay éxito, redirigimos al juego
-        router.push('/sandbox'); 
+        router.push('/sandbox'); // O '/play' si ya cambiaste la ruta
         router.refresh(); // Refrescamos para que el AuthProvider reconozca la sesión
       }
     } catch (err) {
@@ -44,7 +45,7 @@ const LoginForm = () => {
 
   const handleGoogleLogin = () => {
     // Redirige directamente usando el proveedor de Google
-    signIn('google', { callbackUrl: '/sandbox' });
+    signIn('google', { callbackUrl: '/sandbox' }); // Cambia '/sandbox' por '/play' si actualizaste las rutas
   };
 
   return (
@@ -122,6 +123,16 @@ const LoginForm = () => {
       >
         {isLoading ? 'Cargando...' : 'Sign in'}
       </Button>
+
+      {/* Enlace para ir a Register si no tienes cuenta */}
+      <div className="text-center mt-6">
+        <Link 
+          href="/register" 
+          className="text-spotydle font-bold text-sm hover:underline transition-all"
+        >
+          Do not have an account? Sign up
+        </Link>
+      </div>
     </form>
   );
 };
