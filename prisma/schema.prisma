@@ -65,14 +65,25 @@ model Stats {
   userId            String   @unique
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  // Los mismos datos que tenías en LocalStorage
+  
   gamesPlayed       Int      @default(0)
   gamesWon          Int      @default(0)
   currentStreak     Int      @default(0)
   maxStreak         Int      @default(0)
-  distribution      Int[]    // Array de números [0,0,0,0,0,0]
+  distribution      Int[]    
   lastCompletedDate String?
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+}
+
+// ==========================================
+// MODOS DE JUEGO (Niveles / Playlists)
+// ==========================================
+model GameMode {
+  id        String   @id @default(cuid())
+  title     String   // Ej: "90's Hits"
+  query     String   // Término para buscar en Apple Music (Ej: "90s Hits")
+  imageUrl  String   // La URL de la foto (*.mzstatic.com)
+  isLocked  Boolean  @default(false)
 }
