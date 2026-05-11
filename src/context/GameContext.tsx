@@ -9,7 +9,9 @@ import React, {
 } from "react";
 import { GuessResult } from "@/components/game/GuessGrid";
 import { Clue } from "@/components/game/Clues";
+import { getSongsByArtistId } from "@/services/itunesService";
 import { getDailyTrack } from "@/lib/dailySelector";
+import { PLAYLISTS } from "@/data/playlists"; 
 
 export interface TargetSong {
   artist: string;
@@ -28,13 +30,12 @@ export interface GuessDetail {
   songCorrect: boolean;
 }
 
-// --- NUEVAS INTERFACES PARA ESTADÍSTICAS ---
 export interface GameStats {
   gamesPlayed: number;
   gamesWon: number;
   currentStreak: number;
   maxStreak: number;
-  distribution: number[]; // [Intento 1, Intento 2, ..., Intento 6]
+  distribution: number[]; 
   lastCompletedDate: string | null;
 }
 
@@ -45,15 +46,15 @@ interface GameContextType {
   clues: Clue[];
   currentAttempt: number;
   gameState: "playing" | "won" | "lost";
-  stats: GameStats; // Añadimos stats al Contexto
+  stats: GameStats;
   submitGuess: (userArtist: string, userTitle: string) => void;
   skipTurn: () => void;
   checkAlreadyGuessed: (artist: string, title: string) => boolean;
+  initMode: (slug: string) => Promise<void>;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
-const STORAGE_KEY = "spotydle_daily_save";
 const STATS_STORAGE_KEY = "spotydle_stats";
 
 const DEFAULT_STATS: GameStats = {
@@ -65,116 +66,143 @@ const DEFAULT_STATS: GameStats = {
   lastCompletedDate: null,
 };
 
-// Función para obtener la fecha de hoy en texto (ej: "2026-4-30")
 const getTodayDateString = () => {
   const today = new Date();
   return `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
 };
 
 export const GameProvider = ({ children }: { children: ReactNode }) => {
-  // Empezamos en null, sin mock
   const [targetSong, setTargetSong] = useState<TargetSong | null>(null);
   const [guesses, setGuesses] = useState<GuessResult[]>([]);
   const [guessDetails, setGuessDetails] = useState<GuessDetail[]>([]);
-  const [gameState, setGameState] = useState<"playing" | "won" | "lost">(
-    "playing",
-  );
-  // Estado para las estadísticas
+  const [gameState, setGameState] = useState<"playing" | "won" | "lost">("playing");
   const [stats, setStats] = useState<GameStats>(DEFAULT_STATS);
+  const [currentSlug, setCurrentSlug] = useState<string | null>(null);
 
   const currentAttempt = guesses.length + 1;
 
-  // ==========================================
-  // CARGA INICIAL: CANCIÓN, PARTIDA Y ESTADÍSTICAS
-  // ==========================================
-  useEffect(() => {
-    async function initGame() {
-      // 1. Cargamos la canción del día
-      const song = await getDailyTrack("test_collab");
-      if (song) {
-        setTargetSong({
-          artist: song.artist,
-          title: song.title,
-          coverUrl: song.coverUrl,
-          previewUrl: song.previewUrl,
-          releaseYear: song.releaseYear,
-          genre: song.genre,
-          isExplicit: song.isExplicit,
-        });
-      }
+  const initMode = async (slug: string) => {
+    if (currentSlug === slug) return; 
 
-      // 2. Comprobamos si hay partida guardada en el navegador
-      const savedData = localStorage.getItem(STORAGE_KEY);
-      if (savedData) {
-        try {
-          const parsedData = JSON.parse(savedData);
-          if (parsedData.date === getTodayDateString()) {
-            setGuesses(parsedData.guesses);
-            setGuessDetails(parsedData.guessDetails);
-            setGameState(parsedData.gameState);
-          } else {
-            localStorage.removeItem(STORAGE_KEY);
-          }
-        } catch (error) {
-          console.error("Error leyendo el LocalStorage", error);
+    setCurrentSlug(slug);
+    const storageKey = `spotydle_save_${slug}`;
+    const savedData = localStorage.getItem(storageKey);
+    let loadedFromSave = false;
+
+    if (savedData) {
+      try {
+        const parsedData = JSON.parse(savedData);
+        if (parsedData.date === getTodayDateString() && parsedData.targetSong) {
+          setTargetSong(parsedData.targetSong);
+          setGuesses(parsedData.guesses);
+          setGuessDetails(parsedData.guessDetails);
+          setGameState(parsedData.gameState);
+          loadedFromSave = true;
+        } else {
+          localStorage.removeItem(storageKey);
         }
+      } catch (error) {
+        console.error(error);
       }
+    }
 
-      // 3. Cargamos las estadísticas históricas
-      const savedStats = localStorage.getItem(STATS_STORAGE_KEY);
-      if (savedStats) {
-        try {
-          setStats(JSON.parse(savedStats));
-        } catch (error) {
-          console.error("Error leyendo estadísticas", error);
+    if (!loadedFromSave) {
+      setGuesses([]);
+      setGuessDetails([]);
+      setGameState("playing");
+      setTargetSong(null);
+
+      if (slug === "daily") {
+        const dailyTrack = await getDailyTrack();
+        if (dailyTrack) {
+          setTargetSong({
+            artist: dailyTrack.artist,
+            title: dailyTrack.title,
+            coverUrl: dailyTrack.coverUrl,
+            previewUrl: dailyTrack.previewUrl,
+            releaseYear: dailyTrack.releaseYear,
+            genre: dailyTrack.genre,
+            isExplicit: dailyTrack.isExplicit
+          });
+        }
+      } else {
+        const artistIds = PLAYLISTS[slug as keyof typeof PLAYLISTS];
+        if (artistIds && artistIds.length > 0) {
+          const randomId = artistIds[Math.floor(Math.random() * artistIds.length)];
+          const songs = await getSongsByArtistId(randomId);
+          
+          if (songs && songs.length > 0) {
+            const track = songs[Math.floor(Math.random() * songs.length)];
+            setTargetSong({
+              artist: track.artist,
+              title: track.title,
+              coverUrl: track.coverUrl,
+              previewUrl: track.previewUrl,
+              releaseYear: track.releaseYear,
+              genre: track.genre,
+              isExplicit: track.isExplicit
+            });
+          }
         }
       }
     }
-    initGame();
+  };
+
+  useEffect(() => {
+    const savedStats = localStorage.getItem(STATS_STORAGE_KEY);
+    if (savedStats) {
+      try {
+        const parsed = JSON.parse(savedStats);
+        setTimeout(() => {
+          setStats(parsed);
+        }, 0);
+      } catch (error) {
+        console.error(error);
+      }
+    }
   }, []);
 
-  // ==========================================
-  // AUTOGUARDADO DE LA PARTIDA ACTUAL
-  // ==========================================
   useEffect(() => {
-    if (targetSong) {
+    if (targetSong && currentSlug) {
+      const storageKey = `spotydle_save_${currentSlug}`;
       const saveData = {
         date: getTodayDateString(),
+        targetSong,
         guesses,
         guessDetails,
         gameState,
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
+      localStorage.setItem(storageKey, JSON.stringify(saveData));
     }
-  }, [guesses, guessDetails, gameState, targetSong]);
+  }, [guesses, guessDetails, gameState, targetSong, currentSlug]);
 
-  // ==========================================
-  // MOTOR DE ESTADÍSTICAS
-  // ==========================================
   const handleGameEnd = (finalState: "won" | "lost", totalAttempts: number) => {
     const today = getTodayDateString();
 
     setStats((prevStats) => {
-      // Si ya habíamos registrado la partida de hoy, evitamos duplicados
-      if (prevStats.lastCompletedDate === today) return prevStats;
+      if (prevStats.lastCompletedDate === today && currentSlug === "daily") return prevStats;
 
       const newStats = { ...prevStats };
       newStats.gamesPlayed += 1;
-      newStats.lastCompletedDate = today;
+      
+      if (currentSlug === "daily") {
+        newStats.lastCompletedDate = today;
+      }
 
       if (finalState === "won") {
         newStats.gamesWon += 1;
-        newStats.currentStreak += 1;
-        if (newStats.currentStreak > newStats.maxStreak) {
-          newStats.maxStreak = newStats.currentStreak;
+        if (currentSlug === "daily") {
+          newStats.currentStreak += 1;
+          if (newStats.currentStreak > newStats.maxStreak) {
+            newStats.maxStreak = newStats.currentStreak;
+          }
         }
         
-        // Sumamos 1 al intento en el que ganó
         const winIndex = Math.max(0, totalAttempts - 1);
         newStats.distribution[winIndex] += 1;
       } 
       
-      if (finalState === "lost") {
+      if (finalState === "lost" && currentSlug === "daily") {
         newStats.currentStreak = 0; 
       }
 
@@ -183,7 +211,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  // --- LÓGICA DE NEGOCIO: VALIDACIÓN DE REPETIDOS ---
   const checkAlreadyGuessed = (artist: string, title: string) => {
     return guessDetails.some(
       (guess) =>
@@ -192,7 +219,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
-  // --- LÓGICA DE NEGOCIO: MOTOR DE PISTAS DINÁMICAS ---
   const clues: Clue[] = [
     { id: 1, type: "audio", label: "0:00 - 0:05", duration: 5, status: "locked" },
     {
@@ -319,6 +345,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         submitGuess,
         skipTurn,
         checkAlreadyGuessed,
+        initMode,
       }}
     >
       {children}
@@ -333,7 +360,6 @@ export const useGame = () => {
   return context;
 };
 
-// Función inteligente para detectar coincidencias en colaboraciones
 const checkArtistMatch = (
   userArtist: string,
   targetArtist: string,
