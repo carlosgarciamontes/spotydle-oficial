@@ -92,7 +92,7 @@ export default function PlayMenuPage() {
               title={mode.title}
               imageUrl={mode.imageUrl} 
               isLocked={mode.isLocked}
-              onClick={() => router.push(`/play/daily/${mode.id}`)}
+              onClick={() => router.push(`/play/${mode.slug}`)}
             />
           ))}
         </div>

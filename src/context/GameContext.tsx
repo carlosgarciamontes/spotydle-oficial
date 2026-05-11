@@ -10,6 +10,8 @@ import React, {
 import { GuessResult } from "@/components/game/GuessGrid";
 import { Clue } from "@/components/game/Clues";
 import { getDailyTrack } from "@/lib/dailySelector";
+import { searchSongsGlobal } from "@/services/itunesService";
+import { PLAYLISTS } from "@/constants/playlists"; // Asegúrate de tener este archivo creado
 
 export interface TargetSong {
   artist: string;
@@ -28,13 +30,12 @@ export interface GuessDetail {
   songCorrect: boolean;
 }
 
-// --- NUEVAS INTERFACES PARA ESTADÍSTICAS ---
 export interface GameStats {
   gamesPlayed: number;
   gamesWon: number;
   currentStreak: number;
   maxStreak: number;
-  distribution: number[]; // [Intento 1, Intento 2, ..., Intento 6]
+  distribution: number[]; 
   lastCompletedDate: string | null;
 }
 
@@ -45,15 +46,15 @@ interface GameContextType {
   clues: Clue[];
   currentAttempt: number;
   gameState: "playing" | "won" | "lost";
-  stats: GameStats; // Añadimos stats al Contexto
+  stats: GameStats;
   submitGuess: (userArtist: string, userTitle: string) => void;
   skipTurn: () => void;
   checkAlreadyGuessed: (artist: string, title: string) => boolean;
+  initMode: (slug: string) => Promise<void>; // <-- Nueva función expuesta
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
-const STORAGE_KEY = "spotydle_daily_save";
 const STATS_STORAGE_KEY = "spotydle_stats";
 
 const DEFAULT_STATS: GameStats = {
@@ -65,62 +66,93 @@ const DEFAULT_STATS: GameStats = {
   lastCompletedDate: null,
 };
 
-// Función para obtener la fecha de hoy en texto (ej: "2026-4-30")
 const getTodayDateString = () => {
   const today = new Date();
   return `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
 };
 
 export const GameProvider = ({ children }: { children: ReactNode }) => {
-  // Empezamos en null, sin mock
   const [targetSong, setTargetSong] = useState<TargetSong | null>(null);
   const [guesses, setGuesses] = useState<GuessResult[]>([]);
   const [guessDetails, setGuessDetails] = useState<GuessDetail[]>([]);
-  const [gameState, setGameState] = useState<"playing" | "won" | "lost">(
-    "playing",
-  );
-  // Estado para las estadísticas
+  const [gameState, setGameState] = useState<"playing" | "won" | "lost">("playing");
   const [stats, setStats] = useState<GameStats>(DEFAULT_STATS);
+  
+  // Guardamos el slug actual para saber bajo qué nombre guardar en LocalStorage
+  const [currentSlug, setCurrentSlug] = useState<string | null>(null);
 
   const currentAttempt = guesses.length + 1;
 
   // ==========================================
-  // CARGA INICIAL: CANCIÓN, PARTIDA Y ESTADÍSTICAS
+  // INICIALIZACIÓN DEL MODO (Llamado desde GameClient)
   // ==========================================
-  useEffect(() => {
-    async function initGame() {
-      // 1. Cargamos la canción del día
-      const song = await getDailyTrack("test_collab");
-      if (song) {
-        setTargetSong({
-          artist: song.artist,
-          title: song.title,
-          coverUrl: song.coverUrl,
-          previewUrl: song.previewUrl,
-          releaseYear: song.releaseYear,
-          genre: song.genre,
-          isExplicit: song.isExplicit,
-        });
-      }
+  const initMode = async (slug: string) => {
+    setCurrentSlug(slug);
+    const storageKey = `spotydle_save_${slug}`;
+    const savedData = localStorage.getItem(storageKey);
+    let loadedFromSave = false;
 
-      // 2. Comprobamos si hay partida guardada en el navegador
-      const savedData = localStorage.getItem(STORAGE_KEY);
-      if (savedData) {
-        try {
-          const parsedData = JSON.parse(savedData);
-          if (parsedData.date === getTodayDateString()) {
-            setGuesses(parsedData.guesses);
-            setGuessDetails(parsedData.guessDetails);
-            setGameState(parsedData.gameState);
-          } else {
-            localStorage.removeItem(STORAGE_KEY);
+    // 1. Intentamos cargar la partida guardada
+    if (savedData) {
+      try {
+        const parsedData = JSON.parse(savedData);
+        // Validamos que sea de hoy y que tenga la canción guardada (para no cambiarla si el usuario recarga la página)
+        if (parsedData.date === getTodayDateString() && parsedData.targetSong) {
+          setTargetSong(parsedData.targetSong);
+          setGuesses(parsedData.guesses);
+          setGuessDetails(parsedData.guessDetails);
+          setGameState(parsedData.gameState);
+          loadedFromSave = true;
+        } else {
+          localStorage.removeItem(storageKey);
+        }
+      } catch (error) {
+        console.error("Error leyendo el LocalStorage", error);
+      }
+    }
+
+    // 2. Si no hay partida guardada de hoy, generamos una nueva
+    if (!loadedFromSave) {
+      setGuesses([]);
+      setGuessDetails([]);
+      setGameState("playing");
+
+      if (slug === "daily") {
+        // Lógica exclusiva del reto diario
+        const song = await getDailyTrack(); 
+        if (song) setTargetSong(song as TargetSong);
+      } else {
+        // Lógica para los demás modos: Elegimos un artista aleatorio de la playlist
+        const artists = PLAYLISTS[slug as keyof typeof PLAYLISTS];
+        if (artists && artists.length > 0) {
+          const randomQuery = artists[Math.floor(Math.random() * artists.length)];
+          const results = await searchSongsGlobal(randomQuery);
+          
+          if (results.length > 0) {
+            // Cogemos una canción aleatoria de los resultados
+            const randomSong = results[Math.floor(Math.random() * results.length)];
+            setTargetSong({
+              artist: randomSong.artist,
+              title: randomSong.title,
+              coverUrl: randomSong.coverUrl,
+              previewUrl: randomSong.previewUrl,
+              releaseYear: 2024, // iTunes API simple a veces no devuelve año, puedes mockearlo o extraerlo
+              genre: "Pop",      // Igual que el año
+              isExplicit: false
+            });
           }
-        } catch (error) {
-          console.error("Error leyendo el LocalStorage", error);
         }
       }
+    }
+  };
 
-      // 3. Cargamos las estadísticas históricas
+  // ==========================================
+  // CARGA DE ESTADÍSTICAS GLOBALES
+  // ==========================================
+  useEffect(() => {
+    // Usar un micro-retraso (timeout de 0ms) saca la ejecución de la fase síncrona.
+    // Esto elimina el warning del linter y optimiza el renderizado inicial de React.
+    const timer = setTimeout(() => {
       const savedStats = localStorage.getItem(STATS_STORAGE_KEY);
       if (savedStats) {
         try {
@@ -129,24 +161,27 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
           console.error("Error leyendo estadísticas", error);
         }
       }
-    }
-    initGame();
+    }, 0);
+
+    return () => clearTimeout(timer); // Limpieza por seguridad
   }, []);
 
   // ==========================================
-  // AUTOGUARDADO DE LA PARTIDA ACTUAL
+  // AUTOGUARDADO DINÁMICO
   // ==========================================
   useEffect(() => {
-    if (targetSong) {
+    if (targetSong && currentSlug) {
+      const storageKey = `spotydle_save_${currentSlug}`;
       const saveData = {
         date: getTodayDateString(),
+        targetSong, // Guardamos la canción para que la aleatoriedad no moleste al recargar
         guesses,
         guessDetails,
         gameState,
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
+      localStorage.setItem(storageKey, JSON.stringify(saveData));
     }
-  }, [guesses, guessDetails, gameState, targetSong]);
+  }, [guesses, guessDetails, gameState, targetSong, currentSlug]);
 
   // ==========================================
   // MOTOR DE ESTADÍSTICAS
@@ -155,26 +190,31 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     const today = getTodayDateString();
 
     setStats((prevStats) => {
-      // Si ya habíamos registrado la partida de hoy, evitamos duplicados
-      if (prevStats.lastCompletedDate === today) return prevStats;
+      // Evitamos registrar la victoria dos veces si recarga la página
+      if (prevStats.lastCompletedDate === today && currentSlug === "daily") return prevStats;
 
       const newStats = { ...prevStats };
       newStats.gamesPlayed += 1;
-      newStats.lastCompletedDate = today;
+      
+      // Consideraremos el modo daily como el único que afecta a las rachas oficiales
+      if (currentSlug === "daily") {
+        newStats.lastCompletedDate = today;
+      }
 
       if (finalState === "won") {
         newStats.gamesWon += 1;
-        newStats.currentStreak += 1;
-        if (newStats.currentStreak > newStats.maxStreak) {
-          newStats.maxStreak = newStats.currentStreak;
+        if (currentSlug === "daily") {
+          newStats.currentStreak += 1;
+          if (newStats.currentStreak > newStats.maxStreak) {
+            newStats.maxStreak = newStats.currentStreak;
+          }
         }
         
-        // Sumamos 1 al intento en el que ganó
         const winIndex = Math.max(0, totalAttempts - 1);
         newStats.distribution[winIndex] += 1;
       } 
       
-      if (finalState === "lost") {
+      if (finalState === "lost" && currentSlug === "daily") {
         newStats.currentStreak = 0; 
       }
 
@@ -183,7 +223,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  // --- LÓGICA DE NEGOCIO: VALIDACIÓN DE REPETIDOS ---
+  // --- LÓGICA DE NEGOCIO ---
   const checkAlreadyGuessed = (artist: string, title: string) => {
     return guessDetails.some(
       (guess) =>
@@ -192,7 +232,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
-  // --- LÓGICA DE NEGOCIO: MOTOR DE PISTAS DINÁMICAS ---
   const clues: Clue[] = [
     { id: 1, type: "audio", label: "0:00 - 0:05", duration: 5, status: "locked" },
     {
@@ -319,6 +358,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         submitGuess,
         skipTurn,
         checkAlreadyGuessed,
+        initMode,
       }}
     >
       {children}
@@ -333,7 +373,6 @@ export const useGame = () => {
   return context;
 };
 
-// Función inteligente para detectar coincidencias en colaboraciones
 const checkArtistMatch = (
   userArtist: string,
   targetArtist: string,

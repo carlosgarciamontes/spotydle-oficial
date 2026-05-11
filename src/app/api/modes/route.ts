@@ -24,14 +24,14 @@ export async function GET() {
 
       // Lista inicial basada en tu maquetación anterior
       const initialModes = [
-        { title: "Daily Challenge", query: "Top Hits", isLocked: false },
-        { title: "Unlimited", query: "Pop Music", isLocked: true },
-        { title: "90's Hits", query: "90s Hits", isLocked: false },
-        { title: "Rock Anthems", query: "Classic Rock", isLocked: false },
-        { title: "Hip Hop", query: "Hip Hop", isLocked: false },
-        { title: "Movies B.S.O", query: "Movie Soundtrack", isLocked: false },
-        { title: "Pop", query: "Pop", isLocked: false },
-        { title: "Flamenkito", query: "Flamenco", isLocked: false },
+        { title: "Daily Challenge", slug: "daily", query: "Top Hits", isLocked: false },
+        { title: "Urbano España", slug: "urbano", query: "Hoke", isLocked: false },
+        { title: "90's Hits", slug: "90s", query: "Michael Jackson", isLocked: false },
+        { title: "Reggaeton Antiguo", slug: "reggaeton", query: "Daddy Yankee", isLocked: false },
+        { title: "Hip Hop", slug: "hiphop", query: "50 Cent", isLocked: false },
+        { title: "Flow 2000", slug: "flow-2000", query: "Melendi", isLocked: false },
+        { title: "Rock Anthems", slug: "rock", query: "Queen", isLocked: false },
+        { title: "Flamenkito", slug: "flamenkito", query: "Camarón de la Isla", isLocked: false },
       ];
 
       for (const mode of initialModes) {
@@ -45,6 +45,7 @@ export async function GET() {
         await prisma.gameMode.create({
           data: {
             title: mode.title,
+            slug: mode.slug,
             query: mode.query,
             imageUrl: coverUrl,
             isLocked: mode.isLocked,

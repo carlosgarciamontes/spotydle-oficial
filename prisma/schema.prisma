@@ -86,4 +86,5 @@ model GameMode {
   query     String   // Término para buscar en Apple Music (Ej: "90s Hits")
   imageUrl  String   // La URL de la foto (*.mzstatic.com)
   isLocked  Boolean  @default(false)
+  slug      String   @unique
 }
