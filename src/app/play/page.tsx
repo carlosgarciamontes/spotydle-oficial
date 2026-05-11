@@ -6,12 +6,13 @@ import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
 import LevelCard from "@/components/ui/LevelCard";
 
-// Asegúrate de que esta interfaz coincida exactamente con lo que devuelve tu Prisma/API
+
 interface GameMode {
   id: string;
   title: string;
   imageUrl: string; 
   isLocked: boolean;
+  slug: string;
 }
 
 export default function PlayMenuPage() {

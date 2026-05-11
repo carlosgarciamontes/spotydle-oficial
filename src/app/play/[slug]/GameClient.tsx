@@ -9,7 +9,6 @@ import AudioPlayer from "@/components/game/Audioplayer";
 import Clues from "@/components/game/Clues";
 import GameInput, { SongSuggestion } from "@/components/game/GameInput";
 import { useGame } from "@/context/GameContext";
-import { searchSongsGlobal } from "@/services/itunesService";
 import { useDebounce } from "@/hooks/useDebounce";
 
 interface GameClientProps {
@@ -28,7 +27,7 @@ export default function GameClient({ mode }: GameClientProps) {
     gameState,
     targetSong,
     checkAlreadyGuessed,
-    initMode, // <--- Esta es la función que hemos creado en el contexto
+    initMode,
   } = useGame();
 
   const [searchValue, setSearchValue] = useState("");
@@ -36,22 +35,38 @@ export default function GameClient({ mode }: GameClientProps) {
   const [selectedSong, setSelectedSong] = useState<SongSuggestion | null>(null);
   const debouncedSearchValue = useDebounce(searchValue, 500);
 
-  // Al montar el componente, inicializamos el juego con el slug actual
   useEffect(() => {
     initMode(mode.slug);
-  }, [mode.slug]);
+  }, [mode.slug, initMode]);
 
   useEffect(() => {
     async function performSearch() {
       if (debouncedSearchValue.length > 2) {
-        const results = await searchSongsGlobal(debouncedSearchValue);
-        setSuggestions(results);
+        try {
+          const response = await fetch(`/api/search?q=${encodeURIComponent(debouncedSearchValue)}`);
+          
+          if (!response.ok) {
+            throw new Error("Error en la búsqueda");
+          }
+
+          const results = await response.json();
+          setSuggestions(results);
+        } catch (error) {
+          console.error("Error buscando canciones:", error);
+          setSuggestions([]);
+        }
       } else {
         setSuggestions([]);
       }
     }
+    
     performSearch();
   }, [debouncedSearchValue]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchValue(e.target.value);
+    setSelectedSong(null);
+  };
 
   const handleGuessSubmit = () => {
     if (!selectedSong || checkAlreadyGuessed(selectedSong.artist, selectedSong.title)) return;
@@ -59,6 +74,10 @@ export default function GameClient({ mode }: GameClientProps) {
     setSearchValue("");
     setSelectedSong(null);
   };
+
+  const isAlreadyGuessed = selectedSong 
+    ? checkAlreadyGuessed(selectedSong.artist, selectedSong.title) 
+    : false;
 
   return (
     <div className="min-h-screen p-6 md:p-10 bg-black text-white flex flex-col items-center pt-10 pb-40">
@@ -119,11 +138,17 @@ export default function GameClient({ mode }: GameClientProps) {
 
               <Button
                 onClick={handleGuessSubmit}
-                disabled={!selectedSong}
+                disabled={!selectedSong || isAlreadyGuessed}
                 intent="primary"
-                className="h-full px-6 font-bold text-black"
+                className={`h-full px-6 font-bold tracking-widest transition-all ${
+                  !selectedSong
+                    ? "opacity-30 cursor-not-allowed bg-gray-700 text-gray-500"
+                    : isAlreadyGuessed
+                      ? "opacity-60 cursor-not-allowed bg-yellow-600 text-white"
+                      : "text-black opacity-100"
+                }`}
               >
-                GUESS
+                {isAlreadyGuessed ? "REPEATED" : "GUESS"}
               </Button>
             </div>
           </div>

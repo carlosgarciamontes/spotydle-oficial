@@ -11,7 +11,7 @@ import { GuessResult } from "@/components/game/GuessGrid";
 import { Clue } from "@/components/game/Clues";
 import { getDailyTrack } from "@/lib/dailySelector";
 import { searchSongsGlobal } from "@/services/itunesService";
-import { PLAYLISTS } from "@/constants/playlists"; // Asegúrate de tener este archivo creado
+import { PLAYLISTS } from "@/data/playlists"; 
 
 export interface TargetSong {
   artist: string;
@@ -87,6 +87,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   // INICIALIZACIÓN DEL MODO (Llamado desde GameClient)
   // ==========================================
   const initMode = async (slug: string) => {
+    if (currentSlug === slug) return; 
+
     setCurrentSlug(slug);
     const storageKey = `spotydle_save_${slug}`;
     const savedData = localStorage.getItem(storageKey);
@@ -150,8 +152,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   // CARGA DE ESTADÍSTICAS GLOBALES
   // ==========================================
   useEffect(() => {
-    // Usar un micro-retraso (timeout de 0ms) saca la ejecución de la fase síncrona.
-    // Esto elimina el warning del linter y optimiza el renderizado inicial de React.
+  
     const timer = setTimeout(() => {
       const savedStats = localStorage.getItem(STATS_STORAGE_KEY);
       if (savedStats) {
@@ -163,7 +164,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       }
     }, 0);
 
-    return () => clearTimeout(timer); // Limpieza por seguridad
+    return () => clearTimeout(timer); 
   }, []);
 
   // ==========================================
