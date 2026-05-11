@@ -1,8 +1,19 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
 
-export default function HomePage() {
+export default async function HomePage() {
+  // 1. El servidor comprueba la sesión ANTES de renderizar la página
+  const session = await getServerSession();
+
+  // 2. Si detecta la cookie de sesión, expulsa al usuario al menú principal
+  if (session) {
+    redirect('/play');
+  }
+
+  // 3. Si no hay sesión, pinta el diseño limpio que hicimos
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-black">
       
@@ -12,8 +23,8 @@ export default function HomePage() {
         <Image 
           src="/assets/Spotydle.png" 
           alt="Spotydle Logo" 
-          width={280} 
-          height={90} 
+          width={180} 
+          height={60} 
           className="mb-3 object-contain"
           priority 
         />
