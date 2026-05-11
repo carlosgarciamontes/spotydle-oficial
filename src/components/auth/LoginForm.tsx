@@ -33,7 +33,7 @@ const LoginForm = () => {
         setError('Email o contraseña incorrectos');
       } else {
         // Si hay éxito, redirigimos al juego
-        router.push('/sandbox'); // O '/play' si ya cambiaste la ruta
+        router.push('/play'); 
         router.refresh(); // Refrescamos para que el AuthProvider reconozca la sesión
       }
     } catch (err) {
@@ -45,7 +45,7 @@ const LoginForm = () => {
 
   const handleGoogleLogin = () => {
     // Redirige directamente usando el proveedor de Google
-    signIn('google', { callbackUrl: '/sandbox' }); // Cambia '/sandbox' por '/play' si actualizaste las rutas
+    signIn('google', { callbackUrl: '/play' }); 
   };
 
   return (
