@@ -43,8 +43,10 @@ export default function GameClient({ mode }: GameClientProps) {
     async function performSearch() {
       if (debouncedSearchValue.length > 2) {
         try {
-          const response = await fetch(`/api/search?q=${encodeURIComponent(debouncedSearchValue)}`);
-          
+          const response = await fetch(
+            `/api/search?q=${encodeURIComponent(debouncedSearchValue)}`
+          );
+
           if (!response.ok) {
             throw new Error("Error en la búsqueda");
           }
@@ -59,7 +61,7 @@ export default function GameClient({ mode }: GameClientProps) {
         setSuggestions([]);
       }
     }
-    
+
     performSearch();
   }, [debouncedSearchValue]);
 
@@ -69,91 +71,113 @@ export default function GameClient({ mode }: GameClientProps) {
   };
 
   const handleGuessSubmit = () => {
-    if (!selectedSong || checkAlreadyGuessed(selectedSong.artist, selectedSong.title)) return;
+    if (
+      !selectedSong ||
+      checkAlreadyGuessed(selectedSong.artist, selectedSong.title)
+    )
+      return;
     submitGuess(selectedSong.artist, selectedSong.title);
     setSearchValue("");
     setSelectedSong(null);
   };
 
-  const isAlreadyGuessed = selectedSong 
-    ? checkAlreadyGuessed(selectedSong.artist, selectedSong.title) 
+  const isAlreadyGuessed = selectedSong
+    ? checkAlreadyGuessed(selectedSong.artist, selectedSong.title)
     : false;
 
   return (
-    <div className="min-h-screen p-6 md:p-10 bg-black text-white flex flex-col items-center pt-10 pb-40">
+    // 1. Contenedor a altura completa sin padding bottom exagerado
+    <div className="h-[calc(100vh-80px)] md:h-screen w-full bg-black text-white flex flex-col items-center justify-between py-6 px-4 overflow-hidden">
+      
       {targetSong && (
         <WinModal
           isOpen={gameState === "won" || gameState === "lost"}
           hasWon={gameState === "won"}
           songData={targetSong}
           guesses={guesses}
-          onBackToMenu={() => window.location.href = "/play"}
+          onBackToMenu={() => (window.location.href = "/play")}
         />
       )}
 
-      <div className="w-full max-w-md relative mb-10">
-        <Link 
-          href="/play" 
-          className="absolute -left-4 md:-left-16 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+      {/* 2. Header centrado inspirado en tu imagen */}
+      <div className="w-full max-w-md relative flex justify-center items-center mt-2 md:mt-8">
+        <Link
+          href="/play"
+          className="absolute left-0 text-gray-500 hover:text-white transition-colors"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8">
-            <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-4.28 9.22a.75.75 0 000 1.06l3 3a.75.75 0 101.06-1.06l-1.72-1.72h5.69a.75.75 0 000-1.5h-5.69l1.72-1.72a.75.75 0 00-1.06-1.06l-3 3z" clipRule="evenodd" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            className="w-8 h-8"
+          >
+            <path
+              fillRule="evenodd"
+              d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-4.28 9.22a.75.75 0 000 1.06l3 3a.75.75 0 101.06-1.06l-1.72-1.72h5.69a.75.75 0 000-1.5h-5.69l1.72-1.72a.75.75 0 00-1.06-1.06l-3 3z"
+              clipRule="evenodd"
+            />
           </svg>
         </Link>
-        <h1 className="text-3xl font-bold text-spotydle text-center uppercase tracking-tighter">
+        <h1 className="text-2xl md:text-3xl font-bold text-white tracking-wide">
           {mode.title}
         </h1>
       </div>
 
-      <div className="w-full max-w-md">
-        <div className="flex flex-col border border-sp-dark rounded-[2.5rem] bg-[#121212] overflow-hidden shadow-2xl relative">
-          <div className="flex items-center justify-between p-6 pb-2">
-            <span className="text-spotydle font-black tracking-widest text-lg">SPOTYDLE</span>
-            <span className="text-gray-500 text-sm font-bold bg-black/50 px-3 py-1 rounded-full">
-              {guesses.length}/6 Tries
-            </span>
-          </div>
-
-          <div className="p-6 pt-2 flex flex-col gap-6">
-            <GuessGrid guesses={guesses} />
-            <AudioPlayer />
-            <div className="w-full h-px bg-white/5 my-2"></div>
+      {/* 3. Área central principal (Grid, Player, Clues) que se expande para empujar los botones abajo */}
+      <div className="flex-1 w-full max-w-md flex flex-col justify-center gap-6 my-4">
+        <div className="flex justify-center w-full">
+           <GuessGrid guesses={guesses} />
+        </div>
+        
+        <AudioPlayer />
+        
+        {/* En tu imagen original no hay línea divisoria, pero si la quieres muy sutil: */}
+        {/* <div className="w-full h-px bg-white/5 my-1"></div> */}
+        
+        <div className="w-full">
             <Clues clues={clues} />
-
-            <div className="flex items-center gap-3 mt-4 h-12 w-full z-50">
-              <Button onClick={skipTurn} intent="outline" className="h-full px-6 font-bold text-gray-400 border-gray-600">
-                SKIP
-              </Button>
-
-              <GameInput
-                value={searchValue}
-                onChange={handleSearchChange}
-                suggestions={suggestions}
-                onSelect={(song) => {
-                  setSearchValue(`${song.artist} - ${song.title}`);
-                  setSelectedSong(song);
-                  setSuggestions([]);
-                }}
-              />
-
-              <Button
-                onClick={handleGuessSubmit}
-                disabled={!selectedSong || isAlreadyGuessed}
-                intent="primary"
-                className={`h-full px-6 font-bold tracking-widest transition-all ${
-                  !selectedSong
-                    ? "opacity-30 cursor-not-allowed bg-gray-700 text-gray-500"
-                    : isAlreadyGuessed
-                      ? "opacity-60 cursor-not-allowed bg-yellow-600 text-white"
-                      : "text-black opacity-100"
-                }`}
-              >
-                {isAlreadyGuessed ? "REPEATED" : "GUESS"}
-              </Button>
-            </div>
-          </div>
         </div>
       </div>
+
+      {/* 4. Barra inferior de controles (fijada al fondo por el flex-1 de arriba) */}
+      <div className="w-full max-w-md flex items-center gap-3 h-14 mb-2 md:mb-8">
+        <Button
+          onClick={skipTurn}
+          intent="outline"
+          size="default"
+        >
+          SKIP
+        </Button>
+
+        <div className="flex-1 h-full">
+            <GameInput
+            value={searchValue}
+            onChange={handleSearchChange}
+            suggestions={suggestions}
+            onSelect={(song) => {
+                setSearchValue(`${song.artist} - ${song.title}`);
+                setSelectedSong(song);
+                setSuggestions([]);
+            }}
+            />
+        </div>
+
+        <Button
+          onClick={handleGuessSubmit}
+          disabled={!selectedSong || isAlreadyGuessed}
+          intent="primary"
+          className={`${
+            !selectedSong
+              ? "opacity-30 cursor-not-allowed bg-gray-800 text-gray-500"
+              : isAlreadyGuessed
+              ? "opacity-60 cursor-not-allowed bg-yellow-600 text-white"
+              : "text-black opacity-100"
+          }`}
+        >
+          {isAlreadyGuessed ? "REPEATED" : "GUESS"}
+        </Button>
+      </div>
+
     </div>
   );
 }

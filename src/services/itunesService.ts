@@ -1,8 +1,5 @@
 "use server";
 
-// ==========================================
-// INTERFACES ESTRICTAS
-// ==========================================
 export interface iTunesTrack {
   artistName: string;
   trackName: string;
@@ -19,13 +16,6 @@ interface iTunesResponse {
   results: iTunesTrack[];
 }
 
-// ==========================================
-// FUNCIONES DEL SERVICIO
-// ==========================================
-
-/**
- * Busca canciones en iTunes según lo que escriba el usuario
- */
 export async function searchSongsGlobal(query: string) {
   if (!query || query.trim() === "") return [];
 
@@ -42,31 +32,51 @@ export async function searchSongsGlobal(query: string) {
       artist: track.artistName,
       title: track.trackName,
       previewUrl: track.previewUrl,
-      // Cambiamos el tamaño de la imagen de 100x100 a 600x600 para que no se vea pixelada
       coverUrl: track.artworkUrl100.replace("100x100bb.jpg", "600x600bb.jpg"),
     }));
   } catch (error) {
-    console.error("Error en searchSongsGlobal (iTunes):", error);
+    console.error("Error en searchSongsGlobal:", error);
     return [];
   }
 }
 
-/**
- * Obtiene una canción aleatoria de una lista de términos populares
- */
-export async function getRandomTrackGlobal() {
-  const terms = ["Pop", "Rock", "Top Hits", "Latino", "Urban"];
-  const randomTerm = terms[Math.floor(Math.random() * terms.length)];
-  
-  const url = `https://itunes.apple.com/search?term=${randomTerm}&media=music&limit=200`;
+export async function getSongsByArtistId(artistId: string) {
+  const url = `https://itunes.apple.com/lookup?id=${artistId}&entity=song&limit=200&country=ES`;
 
   try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("Fallo en iTunes Random");
+    const response = await fetch(url, { cache: "no-store" }); 
+    if (!response.ok) throw new Error("Fallo en iTunes Search Artist");
 
     const data: iTunesResponse = await response.json();
     
-    // Filtramos las que tengan previewUrl (iTunes suele tener casi todas)
+    const validTracks = data.results.filter((track) => track.previewUrl);
+
+    return validTracks.map((track) => ({
+      artist: track.artistName,
+      title: track.trackName,
+      previewUrl: track.previewUrl,
+      coverUrl: track.artworkUrl100 ? track.artworkUrl100.replace("100x100bb.jpg", "600x600bb.jpg") : "",
+      releaseYear: track.releaseDate ? new Date(track.releaseDate).getFullYear() : 2024,
+      genre: track.primaryGenreName || "Music",
+      isExplicit: track.trackExplicitness === "explicit"
+    }));
+  } catch (error) {
+    console.error("Error en getSongsByArtistId:", error);
+    return [];
+  }
+}
+
+export async function getRandomTrackGlobal() {
+  const terms = ["Pop", "Rock", "Top Hits", "Latino", "Urban", "Hits España"];
+  const randomTerm = terms[Math.floor(Math.random() * terms.length)];
+  
+  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(randomTerm)}&media=music&limit=100`;
+
+  try {
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) throw new Error("Fallo en iTunes Random");
+
+    const data: iTunesResponse = await response.json();
     const validTracks = data.results.filter((track) => track.previewUrl);
 
     if (validTracks.length === 0) return null;
@@ -80,44 +90,10 @@ export async function getRandomTrackGlobal() {
       coverUrl: selected.artworkUrl100.replace("100x100bb.jpg", "600x600bb.jpg"),
       releaseYear: selected.releaseDate ? new Date(selected.releaseDate).getFullYear() : 2024,
       genre: selected.primaryGenreName || "Music",
+      isExplicit: selected.trackExplicitness === "explicit"
     };
   } catch (error) {
-    console.error("Error en getRandomTrackGlobal (iTunes):", error);
+    console.error("Error en getRandomTrackGlobal:", error);
     return null;
-  }
-}
-/**
- * Obtiene el Top 50 de canciones de un artista en España
- */
-/**
- * Obtiene el Top 200 de canciones de un artista en España
- */
-export async function getArtistTopSongs(artistId: string) {
-  const url = `https://itunes.apple.com/lookup?id=${artistId}&entity=song&limit=200&country=ES`;
-  console.log("👉 1. URL enviada a iTunes:", url);
-
-  try {
-    // Apagamos la caché de Next.js para obligarle a hacer la llamada real
-    const response = await fetch(url, { cache: "no-store" }); 
-    if (!response.ok) throw new Error("Fallo en iTunes Search Artist");
-
-    const data: iTunesResponse = await response.json();
-    console.log(`📦 2. iTunes devolvió ${data.resultCount} resultados en total.`);
-    
-    const validTracks = data.results.filter((track) => track.previewUrl);
-    console.log(`🎵 3. De esos, ${validTracks.length} son canciones con audio válido.`);
-
-    return validTracks.map((track) => ({
-      artist: track.artistName,
-      title: track.trackName,
-      previewUrl: track.previewUrl,
-      coverUrl: track.artworkUrl100 ? track.artworkUrl100.replace("100x100bb.jpg", "600x600bb.jpg") : "",
-      releaseYear: track.releaseDate ? new Date(track.releaseDate).getFullYear() : 2024,
-      genre: track.primaryGenreName || "Music",
-      isExplicit: track.trackExplicitness === "explicit"
-    }));
-  } catch (error) {
-    console.error("❌ Error en getArtistTopSongs:", error);
-    return [];
   }
 }
