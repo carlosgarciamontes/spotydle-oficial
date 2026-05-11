@@ -65,7 +65,7 @@ const handler = NextAuth({
     strategy: "jwt",
   },
   pages: {
-    signIn: "/", // O la ruta donde tengas tu formulario de login
+    signIn: "/",
   },
 });
 
