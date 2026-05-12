@@ -17,10 +17,11 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ className }) => {
   const [isSeeking, setIsSeeking] = useState(false);
   const [hasNewAudio, setHasNewAudio] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const isFadingOut = useRef(false);
+  
   const leftBars = [1, 3, 5, 2, 1, 2, 4, 3, 1];
   const rightBars = [1, 3, 4, 2, 1, 2, 5, 3, 1];
 
-  // 1. CÁLCULO DE DURACIÓN
   let maxDuration = 5; 
   if (gameState === 'won' || gameState === 'lost') {
     maxDuration = 30; 
@@ -37,48 +38,74 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ className }) => {
     return () => clearTimeout(timer);
   }, [maxDuration]);
 
-  // 2. CONTROL DEL PLAY/PAUSE
   const togglePlay = () => {
     if (!audioRef.current || !targetSong?.previewUrl) return;
     if (hasNewAudio) setHasNewAudio(false);
+    
     if (isPlaying) {
       audioRef.current.pause();
     } else {
       if (audioRef.current.currentTime >= maxDuration) {
         audioRef.current.currentTime = 0;
       }
+      
+      audioRef.current.volume = 1;
+      isFadingOut.current = false;
       audioRef.current.play();
     }
     setIsPlaying(!isPlaying);
   };
 
-  // 3. ACTUALIZACIÓN DEL TIEMPO
   const handleTimeUpdate = () => {
-    if (!audioRef.current) return;
+    if (!audioRef.current || isSeeking) return;
     
     const current = audioRef.current.currentTime;
     setCurrentTime(current);
-    
     setProgress((current / maxDuration) * 100);
 
-    if (current >= maxDuration) {
+    // --- FADE OUT REVISADO ---
+    // Empezamos el fade 1.2 segundos antes para tener margen de maniobra
+    const fadeStartTime = maxDuration - 1.2;
+
+    if (current >= fadeStartTime && !isFadingOut.current && isPlaying) {
+      isFadingOut.current = true;
+      
+      // Bajamos el volumen en pasos más grandes y rápidos para asegurar el silencio
+      const fadeInterval = setInterval(() => {
+        if (audioRef.current && audioRef.current.volume > 0.1) {
+          audioRef.current.volume = Math.max(0, audioRef.current.volume - 0.15);
+        } else {
+          clearInterval(fadeInterval);
+          if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.volume = 0;
+            audioRef.current.currentTime = maxDuration;
+          }
+          setIsPlaying(false);
+        }
+      }, 80); // 80ms * 7-8 pasos = ~600ms de fade total
+    }
+
+    // Parada de seguridad (Hard Stop)
+    // Solo se activa si por algún motivo el fade no se disparó
+    if (current >= maxDuration && !isFadingOut.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = maxDuration; 
       setIsPlaying(false);
     }
   };
 
-  // 4. CLICK PARA MOVERSE (SCRUBBING) INSTANTÁNEO
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!audioRef.current) return;
 
     setIsSeeking(true);
-
     const rect = e.currentTarget.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const percentage = Math.max(0, Math.min(1, clickX / rect.width));
     const newTime = percentage * maxDuration;
     
+    audioRef.current.volume = 1;
+    isFadingOut.current = false;
     audioRef.current.currentTime = newTime;
     setCurrentTime(newTime);
     setProgress(percentage * 100);
@@ -88,20 +115,51 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ className }) => {
     }, 50);
   };
 
-  // 5. RESETEO AL CAMBIAR TURNO
   useEffect(() => {
-    if (audioRef.current) {
+    if (!audioRef.current) return;
+
+    if (gameState === 'won' || gameState === 'lost') {
+      audioRef.current.currentTime = 15;
+      audioRef.current.volume = 0;
+      isFadingOut.current = false;
+
+      const autoPlayTimer = setTimeout(() => {
+        setCurrentTime(15);
+        setProgress(50);
+        
+        audioRef.current?.play().then(() => {
+          setIsPlaying(true);
+          setHasNewAudio(false);
+
+          let vol = 0;
+          const fadeInterval = setInterval(() => {
+            if (vol < 0.95 && audioRef.current) {
+              vol += 0.05;
+              audioRef.current.volume = vol;
+            } else {
+              if (audioRef.current) audioRef.current.volume = 1;
+              clearInterval(fadeInterval);
+            }
+          }, 75);
+        }).catch(err => console.error("Autoplay blocked:", err));
+      }, 0);
+
+      return () => clearTimeout(autoPlayTimer);
+
+    } else {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
+      audioRef.current.volume = 1;
+      isFadingOut.current = false;
+
+      const resetTimer = setTimeout(() => {
+        setIsPlaying(false);
+        setProgress(0);
+        setCurrentTime(0);
+      }, 0);
+
+      return () => clearTimeout(resetTimer);
     }
-
-    const resetTimer = setTimeout(() => {
-      setIsPlaying(false);
-      setProgress(0);
-      setCurrentTime(0);
-    }, 0);
-
-    return () => clearTimeout(resetTimer);
   }, [guesses.length, gameState]);
 
   if (!targetSong?.previewUrl) return null;
@@ -116,9 +174,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ className }) => {
         onEnded={() => setIsPlaying(false)}
       />
 
-      {/* --- DISEÑO DE ONDAS Y BOTÓN --- */}
       <div className="flex items-center justify-center w-full gap-2 md:gap-4">
-        
         <div className="flex items-center gap-1.5 md:gap-2 h-[50px]">
           {leftBars.map((multiplier, i) => (
             <div 
@@ -170,7 +226,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ className }) => {
         </div>
       </div>
 
-      {/* --- BARRA DE PROGRESO INFERIOR --- */}
       <div className="w-full flex flex-col gap-2 relative max-w-sm px-4">
         <div className="flex justify-end items-center px-1">
           <span className="text-[10px] md:text-xs font-mono font-bold text-spotydle">
@@ -193,7 +248,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ className }) => {
           </div>
         </div>
       </div>
-
     </div>
   );
 };
