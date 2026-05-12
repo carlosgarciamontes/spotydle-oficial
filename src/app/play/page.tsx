@@ -6,7 +6,6 @@ import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
 import LevelCard from "@/components/ui/LevelCard";
 
-
 interface GameMode {
   id: string;
   title: string;
@@ -14,6 +13,21 @@ interface GameMode {
   isLocked: boolean;
   slug: string;
 }
+
+const ModeCardSkeleton = () => {
+  return (
+    <div className="relative w-full aspect-square flex flex-col justify-end p-5 rounded-[2rem] bg-black border border-spotydle overflow-hidden animate-pulse">
+      <div className="absolute inset-0 z-0 bg-white/5" />
+      
+      <div className="absolute inset-0 z-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+
+      <div className="relative z-20 flex flex-col gap-2">
+        <div className="h-7 bg-white/20 rounded-md w-3/4"></div>
+        <div className="h-7 bg-white/20 rounded-md w-1/2"></div>
+      </div>
+    </div>
+  );
+};
 
 export default function PlayMenuPage() {
   const router = useRouter();
@@ -26,8 +40,6 @@ export default function PlayMenuPage() {
   useEffect(() => {
     const fetchGameModes = async () => {
       try {
-        // Llamada REAL a tu endpoint. 
-        // Cambia '/api/modes' por la ruta exacta que hayas creado en tu backend.
         const response = await fetch('/api/modes'); 
         
         if (!response.ok) {
@@ -76,10 +88,13 @@ export default function PlayMenuPage() {
           </div>
         </div>
 
-        {/* --- GRID DE MODOS DE JUEGO (DATOS REALES) --- */}
+        {/* --- GRID DE MODOS DE JUEGO --- */}
         {isLoading ? (
-          <div className="flex justify-center items-center py-20">
-            <div className="w-8 h-8 border-4 border-spotydle border-t-transparent rounded-full animate-spin"></div>
+          // 2. Reemplazamos el spinner por un grid de skeletons
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+              <ModeCardSkeleton key={n} />
+            ))}
           </div>
         ) : error ? (
           <div className="text-center py-10 text-red-500 font-bold">
@@ -87,16 +102,16 @@ export default function PlayMenuPage() {
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          {modes.map((mode) => (
-            <LevelCard
-              key={mode.id}
-              title={mode.title}
-              imageUrl={mode.imageUrl} 
-              isLocked={mode.isLocked}
-              onClick={() => router.push(`/play/${mode.slug}`)}
-            />
-          ))}
-        </div>
+            {modes.map((mode) => (
+              <LevelCard
+                key={mode.id}
+                title={mode.title}
+                imageUrl={mode.imageUrl} 
+                isLocked={mode.isLocked}
+                onClick={() => router.push(`/play/${mode.slug}`)}
+              />
+            ))}
+          </div>
         )}
 
       </div>
