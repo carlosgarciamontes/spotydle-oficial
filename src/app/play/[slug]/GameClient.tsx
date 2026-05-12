@@ -33,6 +33,7 @@ export default function GameClient({ mode }: GameClientProps) {
   const [searchValue, setSearchValue] = useState("");
   const [suggestions, setSuggestions] = useState<SongSuggestion[]>([]);
   const [selectedSong, setSelectedSong] = useState<SongSuggestion | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
   const debouncedSearchValue = useDebounce(searchValue, 500);
 
   useEffect(() => {
@@ -56,9 +57,12 @@ export default function GameClient({ mode }: GameClientProps) {
         } catch (error) {
           console.error("Error buscando canciones:", error);
           setSuggestions([]);
+        } finally {
+          setIsSearching(false);
         }
       } else {
         setSuggestions([]);
+        setIsSearching(false);
       }
     }
 
@@ -66,8 +70,16 @@ export default function GameClient({ mode }: GameClientProps) {
   }, [debouncedSearchValue]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchValue(e.target.value);
+    const value = e.target.value;
+    setSearchValue(value);
     setSelectedSong(null);
+
+    if (value.trim().length > 0) {
+      setIsSearching(true);
+    } else {
+      setIsSearching(false);
+      setSuggestions([]);
+    }
   };
 
   const handleGuessSubmit = () => {
@@ -86,9 +98,7 @@ export default function GameClient({ mode }: GameClientProps) {
     : false;
 
   return (
-    // 1. Contenedor a altura completa sin padding bottom exagerado
     <div className="h-[calc(100vh-80px)] md:h-screen w-full bg-black text-white flex flex-col items-center justify-between py-6 px-4 overflow-hidden">
-      
       {targetSong && (
         <WinModal
           isOpen={gameState === "won" || gameState === "lost"}
@@ -99,7 +109,6 @@ export default function GameClient({ mode }: GameClientProps) {
         />
       )}
 
-      {/* 2. Header centrado inspirado en tu imagen */}
       <div className="w-full max-w-md relative flex justify-center items-center mt-2 md:mt-8">
         <Link
           href="/play"
@@ -123,23 +132,18 @@ export default function GameClient({ mode }: GameClientProps) {
         </h1>
       </div>
 
-      {/* 3. Área central principal (Grid, Player, Clues) que se expande para empujar los botones abajo */}
       <div className="flex-1 w-full max-w-md flex flex-col justify-center gap-6 my-4">
         <div className="flex justify-center w-full">
-           <GuessGrid guesses={guesses} />
+          <GuessGrid guesses={guesses} />
         </div>
         
         <AudioPlayer />
         
-        {/* En tu imagen original no hay línea divisoria, pero si la quieres muy sutil: */}
-        {/* <div className="w-full h-px bg-white/5 my-1"></div> */}
-        
         <div className="w-full">
-            <Clues clues={clues} />
+          <Clues clues={clues} />
         </div>
       </div>
 
-      {/* 4. Barra inferior de controles (fijada al fondo por el flex-1 de arriba) */}
       <div className="w-full max-w-md flex items-center gap-3 h-14 mb-2 md:mb-8">
         <Button
           onClick={skipTurn}
@@ -150,16 +154,17 @@ export default function GameClient({ mode }: GameClientProps) {
         </Button>
 
         <div className="flex-1 h-full">
-            <GameInput
+          <GameInput
             value={searchValue}
             onChange={handleSearchChange}
             suggestions={suggestions}
+            isSearching={isSearching}
             onSelect={(song) => {
-                setSearchValue(`${song.artist} - ${song.title}`);
-                setSelectedSong(song);
-                setSuggestions([]);
+              setSearchValue(`${song.artist} - ${song.title}`);
+              setSelectedSong(song);
+              setSuggestions([]);
             }}
-            />
+          />
         </div>
 
         <Button
@@ -177,7 +182,6 @@ export default function GameClient({ mode }: GameClientProps) {
           {isAlreadyGuessed ? "REPEATED" : "GUESS"}
         </Button>
       </div>
-
     </div>
   );
 }
