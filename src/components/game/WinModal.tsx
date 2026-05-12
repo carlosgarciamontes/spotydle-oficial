@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Share2, Facebook, Twitter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GuessResult } from './GuessGrid';
 import Image from 'next/image';
+import confetti from 'canvas-confetti'; // <-- Importamos la librería
 
 interface WinModalProps {
   isOpen: boolean;
@@ -17,6 +18,42 @@ interface WinModalProps {
 }
 
 const WinModal: React.FC<WinModalProps> = ({ isOpen, songData, guesses = [], hasWon, onBackToMenu }) => {
+
+  // --- EFECTO DE CONFETI ---
+  useEffect(() => {
+    if (isOpen && hasWon) {
+      const duration = 3000;
+      const end = Date.now() + duration;
+
+      const frame = () => {
+        confetti({
+          particleCount: 5,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 },
+          colors: ['#E24F9C', '#4FE24F', '#ffffff']
+        });
+        confetti({
+          particleCount: 5,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 },
+          colors: ['#E94096', '#4FE24F', '#ffffff']
+        });
+
+        if (Date.now() < end) {
+          requestAnimationFrame(frame);
+        }
+      };
+
+      // Pequeño delay de 300ms para que el modal termine de hacer la animación de resorte antes de explotar
+      const timer = setTimeout(() => {
+        frame();
+      }, 300);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, hasWon]);
 
   const generateEmojiGrid = () => {
     const emojiMap: Record<GuessResult, string> = {
