@@ -51,7 +51,19 @@ const GameInput: React.FC<GameInputProps> = ({
           [&::-webkit-scrollbar-thumb]:rounded-full
         ">
           {isSearching ? (
-            <div className="p-4 text-sm text-gray-400 text-center">Buscando en Spotify...</div>
+            /* --- SKELETONS DE CARGA --- */
+            <ul className="flex flex-col">
+              {[1, 2, 3, 4].map((i) => (
+                <li key={i} className="p-3 flex items-center gap-3 border-b border-white/5 last:border-none">
+                  <div className="flex flex-col gap-2 w-full">
+                    {/* Skeleton del Título */}
+                    <div className="h-4 bg-white/10 rounded animate-pulse w-3/4"></div>
+                    {/* Skeleton del Artista */}
+                    <div className="h-3 bg-white/10 rounded animate-pulse w-1/2"></div>
+                  </div>
+                </li>
+              ))}
+            </ul>
           ) : suggestions.length > 0 ? (
             <ul className="flex flex-col">
               {suggestions.map((song) => (

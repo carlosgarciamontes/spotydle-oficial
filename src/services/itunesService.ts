@@ -19,7 +19,7 @@ interface iTunesResponse {
 export async function searchSongsGlobal(query: string) {
   if (!query || query.trim() === "") return [];
 
-  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=10`;
+  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&country=ES&limit=50`;
 
   try {
     const response = await fetch(url);
@@ -27,13 +27,31 @@ export async function searchSongsGlobal(query: string) {
 
     const data: iTunesResponse = await response.json();
 
-    return data.results.map((track) => ({
-      id: track.trackId.toString(),
-      artist: track.artistName,
-      title: track.trackName,
-      previewUrl: track.previewUrl,
-      coverUrl: track.artworkUrl100.replace("100x100bb.jpg", "600x600bb.jpg"),
-    }));
+
+    const uniqueSongs = new Map();
+
+    data.results.forEach((track) => {
+      const artist = track.artistName;
+      const rawTitle = track.trackName;
+      const cleanTitle = rawTitle
+        .replace(/[\(\[].*?[\)\]]|-.*$/g, "")
+        .trim()
+        .toLowerCase();
+
+      const uniqueKey = `${artist.toLowerCase()}-${cleanTitle}`;
+
+      if (!uniqueSongs.has(uniqueKey)) {
+        uniqueSongs.set(uniqueKey, {
+          id: track.trackId.toString(),
+          artist: artist,
+          title: rawTitle, 
+          previewUrl: track.previewUrl,
+          coverUrl: track.artworkUrl100 ? track.artworkUrl100.replace("100x100bb.jpg", "600x600bb.jpg") : "",
+        });
+      }
+    });
+
+    return Array.from(uniqueSongs.values()).slice(0, 50);
   } catch (error) {
     console.error("Error en searchSongsGlobal:", error);
     return [];
