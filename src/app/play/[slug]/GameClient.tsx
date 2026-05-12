@@ -114,7 +114,7 @@ export default function GameClient({ mode }: GameClientProps) {
   const debouncedSearchValue = useDebounce(searchValue, 500);
   const [isInitializing, setIsInitializing] = useState(true);
 
-  useEffect(() => {
+ useEffect(() => {
     const initialize = async () => {
       setIsInitializing(true);
       await initMode(mode.slug);
@@ -122,7 +122,9 @@ export default function GameClient({ mode }: GameClientProps) {
     };
     
     initialize();
-  }, [mode.slug, initMode]);
+   
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode.slug]);
 
   useEffect(() => {
     async function performSearch() {

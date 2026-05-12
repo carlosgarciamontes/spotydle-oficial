@@ -71,6 +71,29 @@ const getTodayDateString = () => {
   return `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
 };
 
+// --- LIMPIADOR DE TÍTULOS Y GENERADOR DE INICIALES ---
+const getInitials = (text: string) => {
+  if (!text) return "---";
+  
+  // 1. Limpiamos "(feat. ...)", "[Remix]", "- Remastered", etc.
+  const cleanText = text
+    .replace(/\s*[([].*?[)\]]/g, '') // Elimina todo entre ( ) o [ ]
+    .replace(/\s+(feat\.?|ft\.?|featuring)\s+.*/i, '') // Por si hay un feat sin paréntesis
+    .replace(/\s+-\s+.*/, '') // Elimina subtítulos después de un guion
+    .trim();
+
+  // 2. Sacamos las iniciales del texto limpio
+  return cleanText
+    .split(' ')
+    .map(word => {
+      // Buscamos el primer carácter que sea una letra o número real
+      const match = word.match(/[a-zA-Z0-9]/);
+      return match ? match[0].toUpperCase() : '';
+    })
+    .filter(char => char !== '')
+    .join('.');
+};
+
 export const GameProvider = ({ children }: { children: ReactNode }) => {
   const [targetSong, setTargetSong] = useState<TargetSong | null>(null);
   const [guesses, setGuesses] = useState<GuessResult[]>([]);
@@ -220,9 +243,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const clues: Clue[] = [
-    { id: 1, type: "audio", label: "0:00 - 0:05", duration: 5, status: "locked" },
     {
-      id: 2,
+      id: 1,
       type: "info",
       label: "Ficha Técnica",
       infoData: [
@@ -231,23 +253,28 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       ],
       status: "locked",
     },
-    { id: 3, type: "audio", label: "0:00 - 0:10", duration: 10, status: "locked" },
+    { id: 2, type: "audio", label: "Audio Invertido (5s)", duration: 5, status: "locked" },
     {
-      id: 4,
-      type: "info",
-      label: "Vibe Check",
-      infoData: [{ label: "Popularidad", value: "Top 100" }],
-      status: "locked",
-    },
-    {
-      id: 5,
+      id: 3,
       type: "visual",
       label: "Portada",
       imageUrl: targetSong?.coverUrl || "",
       blurLevel: 15,
       status: "locked",
     },
-    { id: 6, type: "audio", label: "0:00 - 0:30", duration: 30, status: "locked" },
+    { id: 4, type: "audio", label: "0:00 - 0:05", duration: 5, status: "locked" },
+    {
+      id: 5,
+      type: "info",
+      label: "Iniciales",
+      infoData: [
+        { label: "Artista", value: targetSong ? getInitials(targetSong.artist) : "---" },
+        // Ya no enviamos el flag de true, sacará todas las iniciales limpias de "feats"
+        { label: "Canción", value: targetSong ? getInitials(targetSong.title) : "---" },
+      ],
+      status: "locked",
+    },
+    { id: 6, type: "audio", label: "0:00 - 0:15", duration: 15, status: "locked" },
   ].map((clue, index) => {
     const baseClue = { ...clue } as Clue;
     if (guessDetails[index]) baseClue.userGuess = guessDetails[index];
