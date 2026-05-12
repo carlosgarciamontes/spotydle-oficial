@@ -18,6 +18,91 @@ interface GameClientProps {
   };
 }
 
+const GameSkeleton = () => {
+  const leftBars = [1, 3, 5, 2, 1, 2, 4, 3, 1];
+  const rightBars = [1, 3, 4, 2, 1, 2, 5, 3, 1];
+
+  const cluesSkeleton = [
+    { width: "w-24", isUnlocked: true },  
+    { width: "w-32", isUnlocked: false }, 
+    { width: "w-24", isUnlocked: false }, 
+    { width: "w-28", isUnlocked: false }, 
+    { width: "w-20", isUnlocked: false }, 
+    { width: "w-24", isUnlocked: false }, 
+  ];
+
+  return (
+    <div className="flex-1 w-full max-w-md flex flex-col justify-center gap-6 my-4 animate-pulse">
+      
+      {/* 1. SKELETON DEL GRID (Ahora calcado a tu GuessGrid real) */}
+      <div className="flex justify-center w-full">
+        <div className="flex gap-1.5 w-full max-w-[280px]">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div 
+              key={i} 
+              className="h-2.5 flex-1 rounded-sm bg-[#2A2A2A]"
+            ></div>
+          ))}
+        </div>
+      </div>
+
+      {/* 2. SKELETON DEL AUDIO PLAYER */}
+      <div className="flex flex-col items-center w-full my-8 gap-8">
+        <div className="flex items-center justify-center w-full gap-2 md:gap-4">
+          <div className="flex items-center gap-1.5 md:gap-2 h-[50px]">
+            {leftBars.map((multiplier, i) => (
+              <div 
+                key={`l-${i}`} 
+                className="w-1.5 md:w-2 rounded-full bg-[#2A2A2A]"
+                style={{ height: `${multiplier * 10 * 0.4}px` }}
+              />
+            ))}
+          </div>
+          <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-[#2A2A2A] shrink-0"></div>
+          <div className="flex items-center gap-1.5 md:gap-2 h-[50px]">
+            {rightBars.map((multiplier, i) => (
+              <div 
+                key={`r-${i}`} 
+                className="w-1.5 md:w-2 rounded-full bg-[#2A2A2A]"
+                style={{ height: `${multiplier * 10 * 0.4}px` }}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="w-full flex flex-col gap-2 relative max-w-sm px-4">
+          <div className="flex justify-end items-center px-1">
+            <div className="h-3 w-16 bg-[#2A2A2A] rounded-sm"></div>
+          </div>
+          <div className="w-full h-2 bg-[#2A2A2A] rounded-full"></div>
+        </div>
+      </div>
+
+      {/* 3. SKELETON DE LAS PISTAS (CON DIVS SKELETON EN LUGAR DE ICONOS) */}
+      <div className="flex justify-center w-full">
+        <div className="flex flex-col gap-3 w-full">
+          {cluesSkeleton.map((clue, index) => (
+            <div 
+              key={index} 
+              className={`h-[52px] w-full rounded-2xl flex items-center justify-between px-4 transition-colors ${
+                clue.isUnlocked 
+                  ? "bg-[#2A2A2A] border border-spotydle shadow-[0_0_10px_rgba(233,64,150,0.15)]" 
+                  : "bg-[#2A2A2A]"
+              }`}
+            >
+              {/* Línea de texto skeleton */}
+              <div className={`h-4 bg-white/10 rounded-md ${clue.width}`}></div>
+              
+              {/* Div skeleton para el icono (cuadrado redondeado) */}
+              <div className="h-5 w-5 bg-white/10 rounded-md shrink-0"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+    </div>
+  );
+};
+
 export default function GameClient({ mode }: GameClientProps) {
   const {
     guesses,
@@ -33,10 +118,19 @@ export default function GameClient({ mode }: GameClientProps) {
   const [searchValue, setSearchValue] = useState("");
   const [suggestions, setSuggestions] = useState<SongSuggestion[]>([]);
   const [selectedSong, setSelectedSong] = useState<SongSuggestion | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
   const debouncedSearchValue = useDebounce(searchValue, 500);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
-    initMode(mode.slug);
+    const initialize = async () => {
+      setIsInitializing(true);
+      await initMode(mode.slug);
+      setTimeout(() => setIsInitializing(false), 300);
+      setIsInitializing(false);
+    };
+    
+    initialize();
   }, [mode.slug, initMode]);
 
   useEffect(() => {
@@ -56,9 +150,12 @@ export default function GameClient({ mode }: GameClientProps) {
         } catch (error) {
           console.error("Error buscando canciones:", error);
           setSuggestions([]);
+        } finally {
+          setIsSearching(false);
         }
       } else {
         setSuggestions([]);
+        setIsSearching(false);
       }
     }
 
@@ -66,8 +163,16 @@ export default function GameClient({ mode }: GameClientProps) {
   }, [debouncedSearchValue]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchValue(e.target.value);
+    const value = e.target.value;
+    setSearchValue(value);
     setSelectedSong(null);
+
+    if (value.trim().length > 0) {
+      setIsSearching(true);
+    } else {
+      setIsSearching(false);
+      setSuggestions([]);
+    }
   };
 
   const handleGuessSubmit = () => {
@@ -85,8 +190,9 @@ export default function GameClient({ mode }: GameClientProps) {
     ? checkAlreadyGuessed(selectedSong.artist, selectedSong.title)
     : false;
 
+  const isLoadingGame = isInitializing || !targetSong;
+
   return (
-    // 1. Contenedor a altura completa sin padding bottom exagerado
     <div className="h-[calc(100vh-80px)] md:h-screen w-full bg-black text-white flex flex-col items-center justify-between py-6 px-4 overflow-hidden">
       
       {targetSong && (
@@ -99,7 +205,6 @@ export default function GameClient({ mode }: GameClientProps) {
         />
       )}
 
-      {/* 2. Header centrado inspirado en tu imagen */}
       <div className="w-full max-w-md relative flex justify-center items-center mt-2 md:mt-8">
         <Link
           href="/play"
@@ -123,48 +228,50 @@ export default function GameClient({ mode }: GameClientProps) {
         </h1>
       </div>
 
-      {/* 3. Área central principal (Grid, Player, Clues) que se expande para empujar los botones abajo */}
-      <div className="flex-1 w-full max-w-md flex flex-col justify-center gap-6 my-4">
-        <div className="flex justify-center w-full">
-           <GuessGrid guesses={guesses} />
-        </div>
-        
-        <AudioPlayer />
-        
-        {/* En tu imagen original no hay línea divisoria, pero si la quieres muy sutil: */}
-        {/* <div className="w-full h-px bg-white/5 my-1"></div> */}
-        
-        <div className="w-full">
+      
+      {isLoadingGame ? (
+        <GameSkeleton />
+      ) : (
+        <div className="flex-1 w-full max-w-md flex flex-col justify-center gap-6 my-4">
+          <div className="flex justify-center w-full">
+            <GuessGrid guesses={guesses} />
+          </div>
+          
+          <AudioPlayer />
+          
+          <div className="w-full">
             <Clues clues={clues} />
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* 4. Barra inferior de controles (fijada al fondo por el flex-1 de arriba) */}
       <div className="w-full max-w-md flex items-center gap-3 h-14 mb-2 md:mb-8">
         <Button
           onClick={skipTurn}
           intent="outline"
           size="default"
+          disabled={isLoadingGame}
         >
           SKIP
         </Button>
 
         <div className="flex-1 h-full">
-            <GameInput
+          <GameInput
             value={searchValue}
             onChange={handleSearchChange}
             suggestions={suggestions}
+            isSearching={isSearching}
             onSelect={(song) => {
-                setSearchValue(`${song.artist} - ${song.title}`);
-                setSelectedSong(song);
-                setSuggestions([]);
+              setSearchValue(`${song.artist} - ${song.title}`);
+              setSelectedSong(song);
+              setSuggestions([]);
             }}
-            />
+          />
         </div>
 
         <Button
           onClick={handleGuessSubmit}
-          disabled={!selectedSong || isAlreadyGuessed}
+          disabled={!selectedSong || isAlreadyGuessed || isLoadingGame}
           intent="primary"
           className={`${
             !selectedSong
@@ -177,7 +284,6 @@ export default function GameClient({ mode }: GameClientProps) {
           {isAlreadyGuessed ? "REPEATED" : "GUESS"}
         </Button>
       </div>
-
     </div>
   );
 }
