@@ -33,8 +33,6 @@ const GameSkeleton = () => {
 
   return (
     <div className="flex-1 w-full max-w-md flex flex-col justify-center gap-6 my-4 animate-pulse">
-      
-      {/* 1. SKELETON DEL GRID (Ahora calcado a tu GuessGrid real) */}
       <div className="flex justify-center w-full">
         <div className="flex gap-1.5 w-full max-w-[280px]">
           {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -46,7 +44,6 @@ const GameSkeleton = () => {
         </div>
       </div>
 
-      {/* 2. SKELETON DEL AUDIO PLAYER */}
       <div className="flex flex-col items-center w-full my-8 gap-8">
         <div className="flex items-center justify-center w-full gap-2 md:gap-4">
           <div className="flex items-center gap-1.5 md:gap-2 h-[50px]">
@@ -77,7 +74,6 @@ const GameSkeleton = () => {
         </div>
       </div>
 
-      {/* 3. SKELETON DE LAS PISTAS (CON DIVS SKELETON EN LUGAR DE ICONOS) */}
       <div className="flex justify-center w-full">
         <div className="flex flex-col gap-3 w-full">
           {cluesSkeleton.map((clue, index) => (
@@ -89,16 +85,12 @@ const GameSkeleton = () => {
                   : "bg-[#2A2A2A]"
               }`}
             >
-              {/* Línea de texto skeleton */}
               <div className={`h-4 bg-white/10 rounded-md ${clue.width}`}></div>
-              
-              {/* Div skeleton para el icono (cuadrado redondeado) */}
               <div className="h-5 w-5 bg-white/10 rounded-md shrink-0"></div>
             </div>
           ))}
         </div>
       </div>
-      
     </div>
   );
 };
@@ -127,7 +119,6 @@ export default function GameClient({ mode }: GameClientProps) {
       setIsInitializing(true);
       await initMode(mode.slug);
       setTimeout(() => setIsInitializing(false), 300);
-      setIsInitializing(false);
     };
     
     initialize();
@@ -194,7 +185,6 @@ export default function GameClient({ mode }: GameClientProps) {
 
   return (
     <div className="h-[calc(100vh-80px)] md:h-screen w-full bg-black text-white flex flex-col items-center justify-between py-6 px-4 overflow-hidden">
-      
       {targetSong && (
         <WinModal
           isOpen={gameState === "won" || gameState === "lost"}
@@ -228,7 +218,6 @@ export default function GameClient({ mode }: GameClientProps) {
         </h1>
       </div>
 
-      
       {isLoadingGame ? (
         <GameSkeleton />
       ) : (
