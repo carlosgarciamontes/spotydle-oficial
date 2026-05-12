@@ -29,7 +29,7 @@ export default async function HomePage() {
           priority 
         />
         
-        {/* Nombre de la marca */}
+        
         <h1 className="text-3xl font-bold text-white tracking-wide mb-2">
           Spotydle
         </h1>
