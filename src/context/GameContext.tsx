@@ -11,13 +11,14 @@ import { GuessResult } from "@/components/game/GuessGrid";
 import { Clue } from "@/components/game/Clues";
 import { getSongsByArtistId } from "@/services/itunesService";
 import { getDailyTrack } from "@/lib/dailySelector";
-import { PLAYLISTS } from "@/data/playlists"; 
+import { PLAYLISTS } from "@/data/playlists";
 
 export interface TargetSong {
   artist: string;
   title: string;
   coverUrl: string;
   previewUrl?: string;
+  appleMusicUrl?: string;
   releaseYear?: number;
   genre?: string;
   isExplicit?: boolean;
@@ -35,7 +36,7 @@ export interface GameStats {
   gamesWon: number;
   currentStreak: number;
   maxStreak: number;
-  distribution: number[]; 
+  distribution: number[];
   lastCompletedDate: string | null;
 }
 
@@ -71,41 +72,39 @@ const getTodayDateString = () => {
   return `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
 };
 
-// --- LIMPIADOR DE TÍTULOS Y GENERADOR DE INICIALES ---
 const getInitials = (text: string) => {
   if (!text) return "---";
-  
-  // 1. Limpiamos "(feat. ...)", "[Remix]", "- Remastered", etc.
+
   const cleanText = text
-    .replace(/\s*[([].*?[)\]]/g, '') // Elimina todo entre ( ) o [ ]
-    .replace(/\s+(feat\.?|ft\.?|featuring)\s+.*/i, '') // Por si hay un feat sin paréntesis
-    .replace(/\s+-\s+.*/, '') // Elimina subtítulos después de un guion
+    .replace(/\s*[([].*?[)\]]/g, "")
+    .replace(/\s+(feat\.?|ft\.?|featuring)\s+.*/i, "")
+    .replace(/\s+-\s+.*/, "")
     .trim();
 
-  // 2. Sacamos las iniciales del texto limpio
   return cleanText
-    .split(' ')
-    .map(word => {
-      // Buscamos el primer carácter que sea una letra o número real
+    .split(" ")
+    .map((word) => {
       const match = word.match(/[a-zA-Z0-9]/);
-      return match ? match[0].toUpperCase() : '';
+      return match ? match[0].toUpperCase() : "";
     })
-    .filter(char => char !== '')
-    .join('.');
+    .filter((char) => char !== "")
+    .join(".");
 };
 
 export const GameProvider = ({ children }: { children: ReactNode }) => {
   const [targetSong, setTargetSong] = useState<TargetSong | null>(null);
   const [guesses, setGuesses] = useState<GuessResult[]>([]);
   const [guessDetails, setGuessDetails] = useState<GuessDetail[]>([]);
-  const [gameState, setGameState] = useState<"playing" | "won" | "lost">("playing");
+  const [gameState, setGameState] = useState<"playing" | "won" | "lost">(
+    "playing",
+  );
   const [stats, setStats] = useState<GameStats>(DEFAULT_STATS);
   const [currentSlug, setCurrentSlug] = useState<string | null>(null);
 
   const currentAttempt = guesses.length + 1;
 
   const initMode = async (slug: string) => {
-    if (currentSlug === slug) return; 
+    if (currentSlug === slug) return;
 
     setCurrentSlug(slug);
     const storageKey = `spotydle_save_${slug}`;
@@ -138,32 +137,43 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       if (slug === "daily") {
         const dailyTrack = await getDailyTrack();
         if (dailyTrack) {
+          const trackData = dailyTrack as unknown as Record<string, unknown>;
+          const appleUrl = (trackData.trackViewUrl ||
+            trackData.appleMusicUrl) as string | undefined;
+
           setTargetSong({
             artist: dailyTrack.artist,
             title: dailyTrack.title,
             coverUrl: dailyTrack.coverUrl,
             previewUrl: dailyTrack.previewUrl,
+            appleMusicUrl: appleUrl,
             releaseYear: dailyTrack.releaseYear,
             genre: dailyTrack.genre,
-            isExplicit: dailyTrack.isExplicit
+            isExplicit: dailyTrack.isExplicit,
           });
         }
       } else {
         const artistIds = PLAYLISTS[slug as keyof typeof PLAYLISTS];
         if (artistIds && artistIds.length > 0) {
-          const randomId = artistIds[Math.floor(Math.random() * artistIds.length)];
+          const randomId =
+            artistIds[Math.floor(Math.random() * artistIds.length)];
           const songs = await getSongsByArtistId(randomId);
-          
+
           if (songs && songs.length > 0) {
             const track = songs[Math.floor(Math.random() * songs.length)];
+            const trackData = track as unknown as Record<string, unknown>;
+            const appleUrl = (trackData.trackViewUrl ||
+              trackData.appleMusicUrl) as string | undefined;
+
             setTargetSong({
               artist: track.artist,
               title: track.title,
               coverUrl: track.coverUrl,
               previewUrl: track.previewUrl,
+              appleMusicUrl: appleUrl,
               releaseYear: track.releaseYear,
               genre: track.genre,
-              isExplicit: track.isExplicit
+              isExplicit: track.isExplicit,
             });
           }
         }
@@ -203,11 +213,12 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     const today = getTodayDateString();
 
     setStats((prevStats) => {
-      if (prevStats.lastCompletedDate === today && currentSlug === "daily") return prevStats;
+      if (prevStats.lastCompletedDate === today && currentSlug === "daily")
+        return prevStats;
 
       const newStats = { ...prevStats };
       newStats.gamesPlayed += 1;
-      
+
       if (currentSlug === "daily") {
         newStats.lastCompletedDate = today;
       }
@@ -220,13 +231,13 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             newStats.maxStreak = newStats.currentStreak;
           }
         }
-        
+
         const winIndex = Math.max(0, totalAttempts - 1);
         newStats.distribution[winIndex] += 1;
-      } 
-      
+      }
+
       if (finalState === "lost" && currentSlug === "daily") {
-        newStats.currentStreak = 0; 
+        newStats.currentStreak = 0;
       }
 
       localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(newStats));
@@ -253,7 +264,13 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       ],
       status: "locked",
     },
-    { id: 2, type: "audio", label: "Audio Invertido (5s)", duration: 5, status: "locked" },
+    {
+      id: 2,
+      type: "audio",
+      label: "Audio Invertido (5s)",
+      duration: 5,
+      status: "locked",
+    },
     {
       id: 3,
       type: "visual",
@@ -262,19 +279,36 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       blurLevel: 15,
       status: "locked",
     },
-    { id: 4, type: "audio", label: "0:00 - 0:05", duration: 5, status: "locked" },
+    {
+      id: 4,
+      type: "audio",
+      label: "0:00 - 0:05",
+      duration: 5,
+      status: "locked",
+    },
     {
       id: 5,
       type: "info",
       label: "Iniciales",
       infoData: [
-        { label: "Artista", value: targetSong ? getInitials(targetSong.artist) : "---" },
-        // Ya no enviamos el flag de true, sacará todas las iniciales limpias de "feats"
-        { label: "Canción", value: targetSong ? getInitials(targetSong.title) : "---" },
+        {
+          label: "Artista",
+          value: targetSong ? getInitials(targetSong.artist) : "---",
+        },
+        {
+          label: "Canción",
+          value: targetSong ? getInitials(targetSong.title) : "---",
+        },
       ],
       status: "locked",
     },
-    { id: 6, type: "audio", label: "0:00 - 0:15", duration: 15, status: "locked" },
+    {
+      id: 6,
+      type: "audio",
+      label: "0:00 - 0:15",
+      duration: 15,
+      status: "locked",
+    },
   ].map((clue, index) => {
     const baseClue = { ...clue } as Clue;
     if (guessDetails[index]) baseClue.userGuess = guessDetails[index];
@@ -316,7 +350,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const newGuesses = [...guesses, result];
-    
+
     setGuesses(newGuesses);
     setGuessDetails([
       ...guessDetails,
@@ -395,14 +429,12 @@ const checkArtistMatch = (
     return true;
 
   const normalizeAndSplit = (str: string) => {
-    return (
-      str
-        .toLowerCase()
-        .replace(/ feat\.? | ft\.? | & | y | x | \+ /gi, ",")
-        .split(",")
-        .map((a) => a.trim())
-        .filter((a) => a.length > 0)
-    );
+    return str
+      .toLowerCase()
+      .replace(/ feat\.? | ft\.? | & | y | x | \+ /gi, ",")
+      .split(",")
+      .map((a) => a.trim())
+      .filter((a) => a.length > 0);
   };
 
   const userParts = normalizeAndSplit(userArtist);
