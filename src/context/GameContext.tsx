@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { useSession } from "next-auth/react";
 import { GuessResult } from "@/components/game/GuessGrid";
 import { Clue } from "@/components/game/Clues";
 import { getSongsByArtistId } from "@/services/itunesService";
@@ -52,8 +53,6 @@ interface GameContextType {
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
-const STATS_STORAGE_KEY = "spotydle_stats_v2";
-
 const createEmptyStats = (): ModeStats => ({
   gamesPlayed: 0,
   gamesWon: 0,
@@ -87,20 +86,27 @@ const getInitials = (text: string) => {
 };
 
 export const GameProvider = ({ children }: { children: ReactNode }) => {
+  const { data: session } = useSession();
+  
   const [targetSong, setTargetSong] = useState<TargetSong | null>(null);
   const [guesses, setGuesses] = useState<GuessResult[]>([]);
   const [guessDetails, setGuessDetails] = useState<GuessDetail[]>([]);
   const [gameState, setGameState] = useState<"playing" | "won" | "lost">("playing");
-  const [stats, setStats] = useState<GameStats>({ daily: createEmptyStats() });
+  const [stats, setStats] = useState<GameStats>({});
   const [currentSlug, setCurrentSlug] = useState<string | null>(null);
 
   const currentAttempt = guesses.length + 1;
+
+  const getStorageKey = (type: "save", slug: string) => {
+    const userId = session?.user?.email || "guest";
+    return `spotydle_${type}_${userId}_${slug}`;
+  };
 
   const initMode = async (slug: string) => {
     if (currentSlug === slug) return;
     setCurrentSlug(slug);
     
-    const storageKey = `spotydle_save_${slug}`;
+    const storageKey = getStorageKey("save", slug);
     const savedData = localStorage.getItem(storageKey);
     let loadedFromSave = false;
 
@@ -117,7 +123,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
           localStorage.removeItem(storageKey);
         }
       } catch (error) {
-        console.error(error);
+        console.error("Error al cargar la partida guardada", error);
       }
     }
 
@@ -170,22 +176,28 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    const savedStats = localStorage.getItem(STATS_STORAGE_KEY);
-    if (savedStats) {
+    if (!session?.user?.email) return;
+
+    const fetchStats = async () => {
       try {
-        const parsed = JSON.parse(savedStats);
-        setTimeout(() => {
-          setStats(parsed);
-        }, 0);
+        const res = await fetch("/api/user/profile");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.stats) {
+            setStats(data.stats);
+          }
+        }
       } catch (error) {
-        console.error(error);
+        console.error("Error cargando stats globales:", error);
       }
-    }
-  }, []);
+    };
+
+    fetchStats();
+  }, [session?.user?.email]);
 
   useEffect(() => {
-    if (targetSong && currentSlug) {
-      const storageKey = `spotydle_save_${currentSlug}`;
+    if (targetSong && currentSlug && session?.user?.email) {
+      const storageKey = getStorageKey("save", currentSlug);
       const saveData = {
         date: getTodayDateString(),
         targetSong,
@@ -195,7 +207,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       };
       localStorage.setItem(storageKey, JSON.stringify(saveData));
     }
-  }, [guesses, guessDetails, gameState, targetSong, currentSlug]);
+  }, [guesses, guessDetails, gameState, targetSong, currentSlug, session?.user?.email]);
 
   const handleGameEnd = async (finalState: "won" | "lost", totalAttempts: number) => {
     if (!currentSlug) return;
@@ -228,9 +240,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         updatedModeStats.currentStreak = 0;
       }
 
-      const newStats = { ...prevStats, [modeKey]: updatedModeStats };
-      localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(newStats));
-      return newStats;
+      return { ...prevStats, [modeKey]: updatedModeStats };
     });
 
     try {
@@ -244,7 +254,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         }),
       });
     } catch (error) {
-      console.error(error);
+      console.error("Error guardando partida en la BD", error);
     }
   };
 
