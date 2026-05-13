@@ -7,7 +7,7 @@ export async function getDailyModeTrack(modeSlug: string) {
   if (!artists || artists.length === 0) return null;
 
   const today = new Date();
-  
+  // 
   let slugModifier = 0;
   for (let i = 0; i < modeSlug.length; i++) {
     slugModifier += modeSlug.charCodeAt(i);
