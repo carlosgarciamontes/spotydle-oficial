@@ -1,12 +1,6 @@
 "use client";
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { GuessResult } from "@/components/game/GuessGrid";
 import { Clue } from "@/components/game/Clues";
 import { getSongsByArtistId } from "@/services/itunesService";
@@ -31,7 +25,7 @@ export interface GuessDetail {
   songCorrect: boolean;
 }
 
-export interface GameStats {
+export interface ModeStats {
   gamesPlayed: number;
   gamesWon: number;
   currentStreak: number;
@@ -39,6 +33,8 @@ export interface GameStats {
   distribution: number[];
   lastCompletedDate: string | null;
 }
+
+export type GameStats = Record<string, ModeStats>;
 
 interface GameContextType {
   targetSong: TargetSong | null;
@@ -56,16 +52,16 @@ interface GameContextType {
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
-const STATS_STORAGE_KEY = "spotydle_stats";
+const STATS_STORAGE_KEY = "spotydle_stats_v2";
 
-const DEFAULT_STATS: GameStats = {
+const createEmptyStats = (): ModeStats => ({
   gamesPlayed: 0,
   gamesWon: 0,
   currentStreak: 0,
   maxStreak: 0,
   distribution: [0, 0, 0, 0, 0, 0],
   lastCompletedDate: null,
-};
+});
 
 const getTodayDateString = () => {
   const today = new Date();
@@ -74,7 +70,6 @@ const getTodayDateString = () => {
 
 const getInitials = (text: string) => {
   if (!text) return "---";
-
   const cleanText = text
     .replace(/\s*[([].*?[)\]]/g, "")
     .replace(/\s+(feat\.?|ft\.?|featuring)\s+.*/i, "")
@@ -95,18 +90,16 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   const [targetSong, setTargetSong] = useState<TargetSong | null>(null);
   const [guesses, setGuesses] = useState<GuessResult[]>([]);
   const [guessDetails, setGuessDetails] = useState<GuessDetail[]>([]);
-  const [gameState, setGameState] = useState<"playing" | "won" | "lost">(
-    "playing",
-  );
-  const [stats, setStats] = useState<GameStats>(DEFAULT_STATS);
+  const [gameState, setGameState] = useState<"playing" | "won" | "lost">("playing");
+  const [stats, setStats] = useState<GameStats>({ daily: createEmptyStats() });
   const [currentSlug, setCurrentSlug] = useState<string | null>(null);
 
   const currentAttempt = guesses.length + 1;
 
   const initMode = async (slug: string) => {
     if (currentSlug === slug) return;
-
     setCurrentSlug(slug);
+    
     const storageKey = `spotydle_save_${slug}`;
     const savedData = localStorage.getItem(storageKey);
     let loadedFromSave = false;
@@ -138,9 +131,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         const dailyTrack = await getDailyTrack();
         if (dailyTrack) {
           const trackData = dailyTrack as unknown as Record<string, unknown>;
-          const appleUrl = (trackData.trackViewUrl ||
-            trackData.appleMusicUrl) as string | undefined;
-
+          const appleUrl = (trackData.trackViewUrl || trackData.appleMusicUrl) as string | undefined;
           setTargetSong({
             artist: dailyTrack.artist,
             title: dailyTrack.title,
@@ -155,16 +146,13 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       } else {
         const artistIds = PLAYLISTS[slug as keyof typeof PLAYLISTS];
         if (artistIds && artistIds.length > 0) {
-          const randomId =
-            artistIds[Math.floor(Math.random() * artistIds.length)];
+          const randomId = artistIds[Math.floor(Math.random() * artistIds.length)];
           const songs = await getSongsByArtistId(randomId);
 
           if (songs && songs.length > 0) {
             const track = songs[Math.floor(Math.random() * songs.length)];
             const trackData = track as unknown as Record<string, unknown>;
-            const appleUrl = (trackData.trackViewUrl ||
-              trackData.appleMusicUrl) as string | undefined;
-
+            const appleUrl = (trackData.trackViewUrl || trackData.appleMusicUrl) as string | undefined;
             setTargetSong({
               artist: track.artist,
               title: track.title,
@@ -210,36 +198,37 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   }, [guesses, guessDetails, gameState, targetSong, currentSlug]);
 
   const handleGameEnd = (finalState: "won" | "lost", totalAttempts: number) => {
+    if (!currentSlug) return;
     const today = getTodayDateString();
 
     setStats((prevStats) => {
-      if (prevStats.lastCompletedDate === today && currentSlug === "daily")
+      const modeKey = currentSlug;
+      const currentModeStats = prevStats[modeKey] || createEmptyStats();
+
+      if (modeKey === "daily" && currentModeStats.lastCompletedDate === today) {
         return prevStats;
+      }
 
-      const newStats = { ...prevStats };
-      newStats.gamesPlayed += 1;
+      const updatedModeStats = { ...currentModeStats };
+      updatedModeStats.gamesPlayed += 1;
 
-      if (currentSlug === "daily") {
-        newStats.lastCompletedDate = today;
+      if (modeKey === "daily") {
+        updatedModeStats.lastCompletedDate = today;
       }
 
       if (finalState === "won") {
-        newStats.gamesWon += 1;
-        if (currentSlug === "daily") {
-          newStats.currentStreak += 1;
-          if (newStats.currentStreak > newStats.maxStreak) {
-            newStats.maxStreak = newStats.currentStreak;
-          }
+        updatedModeStats.gamesWon += 1;
+        updatedModeStats.currentStreak += 1;
+        if (updatedModeStats.currentStreak > updatedModeStats.maxStreak) {
+          updatedModeStats.maxStreak = updatedModeStats.currentStreak;
         }
-
         const winIndex = Math.max(0, totalAttempts - 1);
-        newStats.distribution[winIndex] += 1;
+        updatedModeStats.distribution[winIndex] += 1;
+      } else {
+        updatedModeStats.currentStreak = 0;
       }
 
-      if (finalState === "lost" && currentSlug === "daily") {
-        newStats.currentStreak = 0;
-      }
-
+      const newStats = { ...prevStats, [modeKey]: updatedModeStats };
       localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(newStats));
       return newStats;
     });
@@ -254,89 +243,28 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const clues: Clue[] = [
-    {
-      id: 1,
-      type: "info",
-      label: "Ficha Técnica",
-      infoData: [
-        { label: "Año", value: targetSong?.releaseYear || "---" },
-        { label: "Género", value: targetSong?.genre || "---" },
-      ],
-      status: "locked",
-    },
-    {
-      id: 2,
-      type: "audio",
-      label: "Audio Invertido (5s)",
-      duration: 5,
-      status: "locked",
-    },
-    {
-      id: 3,
-      type: "visual",
-      label: "Portada",
-      imageUrl: targetSong?.coverUrl || "",
-      blurLevel: 15,
-      status: "locked",
-    },
-    {
-      id: 4,
-      type: "audio",
-      label: "0:00 - 0:05",
-      duration: 5,
-      status: "locked",
-    },
-    {
-      id: 5,
-      type: "info",
-      label: "Iniciales",
-      infoData: [
-        {
-          label: "Artista",
-          value: targetSong ? getInitials(targetSong.artist) : "---",
-        },
-        {
-          label: "Canción",
-          value: targetSong ? getInitials(targetSong.title) : "---",
-        },
-      ],
-      status: "locked",
-    },
-    {
-      id: 6,
-      type: "audio",
-      label: "0:00 - 0:15",
-      duration: 15,
-      status: "locked",
-    },
+    { id: 1, type: "info", label: "Ficha Técnica", infoData: [{ label: "Año", value: targetSong?.releaseYear || "---" }, { label: "Género", value: targetSong?.genre || "---" }], status: "locked" },
+    { id: 2, type: "audio", label: "Audio Invertido (5s)", duration: 5, status: "locked" },
+    { id: 3, type: "visual", label: "Portada", imageUrl: targetSong?.coverUrl || "", blurLevel: 15, status: "locked" },
+    { id: 4, type: "audio", label: "0:00 - 0:05", duration: 5, status: "locked" },
+    { id: 5, type: "info", label: "Iniciales", infoData: [{ label: "Artista", value: targetSong ? getInitials(targetSong.artist) : "---" }, { label: "Canción", value: targetSong ? getInitials(targetSong.title) : "---" }], status: "locked" },
+    { id: 6, type: "audio", label: "0:00 - 0:15", duration: 15, status: "locked" },
   ].map((clue, index) => {
     const baseClue = { ...clue } as Clue;
     if (guessDetails[index]) baseClue.userGuess = guessDetails[index];
-
     if (guesses.length === index) baseClue.status = "active";
     else if (guesses.length > index) baseClue.status = "failed";
     else baseClue.status = "locked";
-
-    if (gameState === "won" && index === guesses.length - 1) {
-      baseClue.status = "completed";
-    } else if (guesses[index] === "partial") {
-      baseClue.status = "partial";
-    }
-
-    if (baseClue.type === "visual") {
-      baseClue.blurLevel = gameState === "won" ? 0 : 15;
-    }
-
+    if (gameState === "won" && index === guesses.length - 1) baseClue.status = "completed";
+    else if (guesses[index] === "partial") baseClue.status = "partial";
+    if (baseClue.type === "visual") baseClue.blurLevel = gameState === "won" ? 0 : 15;
     return baseClue as Clue;
   });
 
   const submitGuess = (userArtist: string, userTitle: string) => {
     if (gameState !== "playing" || !targetSong) return;
-
     const artistMatch = checkArtistMatch(userArtist, targetSong.artist);
-    const titleMatch =
-      userTitle.toLowerCase().trim() === targetSong.title.toLowerCase().trim();
-
+    const titleMatch = userTitle.toLowerCase().trim() === targetSong.title.toLowerCase().trim();
     let result: GuessResult;
     let newGameState: "playing" | "won" | "lost" = gameState;
 
@@ -350,22 +278,12 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const newGuesses = [...guesses, result];
-
     setGuesses(newGuesses);
-    setGuessDetails([
-      ...guessDetails,
-      {
-        artist: userArtist,
-        song: userTitle,
-        artistCorrect: artistMatch,
-        songCorrect: titleMatch,
-      },
-    ]);
+    setGuessDetails([...guessDetails, { artist: userArtist, song: userTitle, artistCorrect: artistMatch, songCorrect: titleMatch }]);
 
     if (newGuesses.length >= 6 && result !== "correct") {
       newGameState = "lost";
     }
-
     if (newGameState !== "playing") {
       setGameState(newGameState);
       handleGameEnd(newGameState, newGuesses.length);
@@ -374,19 +292,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
   const skipTurn = () => {
     if (gameState !== "playing") return;
-
     const newGuesses: GuessResult[] = [...guesses, "wrong"];
     setGuesses(newGuesses);
-    setGuessDetails([
-      ...guessDetails,
-      {
-        artist: "Skipped",
-        song: "",
-        artistCorrect: false,
-        songCorrect: false,
-      },
-    ]);
-
+    setGuessDetails([...guessDetails, { artist: "Skipped", song: "", artistCorrect: false, songCorrect: false }]);
     if (newGuesses.length >= 6) {
       setGameState("lost");
       handleGameEnd("lost", newGuesses.length);
@@ -394,21 +302,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <GameContext.Provider
-      value={{
-        targetSong,
-        guesses,
-        guessDetails,
-        clues,
-        currentAttempt,
-        gameState,
-        stats,
-        submitGuess,
-        skipTurn,
-        checkAlreadyGuessed,
-        initMode,
-      }}
-    >
+    <GameContext.Provider value={{ targetSong, guesses, guessDetails, clues, currentAttempt, gameState, stats, submitGuess, skipTurn, checkAlreadyGuessed, initMode }}>
       {children}
     </GameContext.Provider>
   );
@@ -416,18 +310,12 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
 export const useGame = () => {
   const context = useContext(GameContext);
-  if (!context)
-    throw new Error("useGame debe usarse dentro de un GameProvider");
+  if (!context) throw new Error("useGame debe usarse dentro de un GameProvider");
   return context;
 };
 
-const checkArtistMatch = (
-  userArtist: string,
-  targetArtist: string,
-): boolean => {
-  if (userArtist.toLowerCase().trim() === targetArtist.toLowerCase().trim())
-    return true;
-
+const checkArtistMatch = (userArtist: string, targetArtist: string): boolean => {
+  if (userArtist.toLowerCase().trim() === targetArtist.toLowerCase().trim()) return true;
   const normalizeAndSplit = (str: string) => {
     return str
       .toLowerCase()
@@ -436,9 +324,7 @@ const checkArtistMatch = (
       .map((a) => a.trim())
       .filter((a) => a.length > 0);
   };
-
   const userParts = normalizeAndSplit(userArtist);
   const targetParts = normalizeAndSplit(targetArtist);
-
   return userParts.some((userPart) => targetParts.includes(userPart));
 };
