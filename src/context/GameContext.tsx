@@ -242,8 +242,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const clues: Clue[] = [
-    { id: 1, type: "info", label: "Ficha Técnica", infoData: [{ label: "Año", value: targetSong?.releaseYear || "---" }, { label: "Género", value: targetSong?.genre || "---" }], status: "locked" },
-    { id: 2, type: "audio", label: "Audio Invertido (5s)", duration: 5, status: "locked" },
+    { id: 1, type: "audio", label: "Audio Invertido (5s)", duration: 5, status: "locked" },
+    { id: 2, type: "info", label: "Ficha Técnica", infoData: [{ label: "Año", value: targetSong?.releaseYear || "---" }, { label: "Género", value: targetSong?.genre || "---" }], status: "locked" },
     { id: 3, type: "visual", label: "Portada", imageUrl: targetSong?.coverUrl || "", blurLevel: 15, status: "locked" },
     { id: 4, type: "audio", label: "0:00 - 0:05", duration: 5, status: "locked" },
     { id: 5, type: "info", label: "Iniciales", infoData: [{ label: "Artista", value: targetSong ? getInitials(targetSong.artist) : "---" }, { label: "Canción", value: targetSong ? getInitials(targetSong.title) : "---" }], status: "locked" },
