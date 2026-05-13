@@ -13,12 +13,14 @@ interface TopNavProps {
 const TopNav: React.FC<TopNavProps> = ({ className }) => {
   const pathname = usePathname();
 
-  if (pathname.startsWith('/play/')) {
+  // Definimos las rutas donde NO queremos que aparezca el Nav
+  const hideNavRoutes = ["/", "/login", "/register", "/verify", "/pending-verification"];
+  
+  if (hideNavRoutes.includes(pathname) || pathname.startsWith('/play/')) {
     return null;
   }
 
   const tabs = [
-    { href: "/", label: "Home" },
     { href: "/ranking", label: "Ranking" },
     { href: "/profile", label: "Profile" },
   ];
@@ -32,7 +34,7 @@ const TopNav: React.FC<TopNavProps> = ({ className }) => {
     >
       <nav className="w-full flex items-center justify-between px-12 lg:px-24">
         <Link
-          href="/"
+          href="/play"
           className="flex items-center gap-4 hover:opacity-80 transition-opacity"
         >
           <div className="relative w-16 h-16 flex items-center justify-center">
@@ -44,31 +46,31 @@ const TopNav: React.FC<TopNavProps> = ({ className }) => {
               priority
             />
           </div>
-          <span className="text-white text-[28px] font-bold tracking-wide">
+          <span className="text-white text-[28px] font-bold tracking-wide uppercase italic">
             Spotydle
           </span>
         </Link>
 
-        {tabs.map((tab) => {
-          const isActive = tab.href === '/' 
-            ? pathname === '/' 
-            : pathname.startsWith(tab.href);
+        <div className="flex gap-12">
+          {tabs.map((tab) => {
+            const isActive = pathname.startsWith(tab.href);
 
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className={cn(
-                "text-[20px] lg:text-[22px] font-bold transition-all duration-300",
-                isActive
-                  ? "text-spotydle drop-shadow-[0_0_12px_rgba(226,79,156,0.6)] scale-105"
-                  : "text-white hover:text-gray-300 hover:scale-105",
-              )}
-            >
-              {tab.label}
-            </Link>
-          );
-        })}
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={cn(
+                  "text-[20px] lg:text-[22px] font-bold transition-all duration-300",
+                  isActive
+                    ? "text-spotydle drop-shadow-[0_0_12px_rgba(226,79,156,0.6)] scale-105"
+                    : "text-white hover:text-gray-300 hover:scale-105",
+                )}
+              >
+                {tab.label}
+              </Link>
+            );
+          })}
+        </div>
       </nav>
     </header>
   );

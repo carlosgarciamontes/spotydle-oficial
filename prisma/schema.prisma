@@ -53,9 +53,10 @@ model User {
   image         String?   // Foto de Google (si usas NextAuth con Google)
   password      String?   
   
-  // <-- NUEVO: Guardamos la id del avatar de Spotydle (1 al 8)
   avatarId      String    @default("1") 
-
+  
+  verifyToken   String?   @unique
+  
   accounts      Account[]
   sessions      Session[]
   

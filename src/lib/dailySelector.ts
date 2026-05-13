@@ -1,33 +1,34 @@
 import { PLAYLISTS } from "@/data/playlists";
 import { getSongsByArtistId } from "@/services/itunesService";
 
-export async function getDailyTrack() {
-  // 1. Cargamos tu lista de IDs específicos para el modo Daily
-  const artists = PLAYLISTS["daily" as keyof typeof PLAYLISTS];
+export async function getDailyModeTrack(modeSlug: string) {
+  const artists = PLAYLISTS[modeSlug as keyof typeof PLAYLISTS];
   
-  if (!artists || artists.length === 0) {
-    return null;
+  if (!artists || artists.length === 0) return null;
+
+  const today = new Date();
+  // 
+  let slugModifier = 0;
+  for (let i = 0; i < modeSlug.length; i++) {
+    slugModifier += modeSlug.charCodeAt(i);
   }
 
-  // 2. Generamos la semilla numérica basada en el día de hoy (ej: 20260512)
-  const today = new Date();
   const seed = parseInt(
     `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}${String(today.getDate()).padStart(2, "0")}`,
-  );
+  ) + slugModifier;
 
-  // 3. Elegimos al artista matemáticamente (hoy será X, mañana Y)
   const artistIndex = seed % artists.length;
   const selectedArtistId = String(artists[artistIndex]);
 
-  // 4. Traemos su top de canciones desde nuestra API optimizada
   const tracks = await getSongsByArtistId(selectedArtistId);
   
-  if (!tracks || tracks.length === 0) {
-    return null;
-  }
+  if (!tracks || tracks.length === 0) return null;
 
-  // 5. Elegimos la canción de ese artista (el * 7 aporta dispersión matemática)
-  const trackIndex = (seed * 7) % tracks.length;
+  const sortedTracks = [...tracks].sort((a, b) => 
+    String(a.title).localeCompare(String(b.title))
+  );
+
+  const trackIndex = (seed * 7) % sortedTracks.length;
   
-  return tracks[trackIndex];
+  return sortedTracks[trackIndex];
 }
