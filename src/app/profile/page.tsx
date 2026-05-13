@@ -54,10 +54,22 @@ export default function ProfilePage() {
     }, 0);
   }, []);
 
-  const handleSelectAvatar = (id: string) => {
+  const handleSelectAvatar = async (id: string) => {
+    // 1. Guardamos en estado y localStorage al instante (para que la UI se actualice rápido)
     setSelectedAvatarId(id);
     localStorage.setItem("spotydle_avatar", id);
     setIsEditingAvatar(false);
+
+    // 2. Avisamos a la base de datos en segundo plano
+    try {
+      await fetch("/api/user/avatar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatarId: id }),
+      });
+    } catch (error) {
+      console.error("No se pudo guardar el avatar en la base de datos", error);
+    }
   };
 
   const currentAvatar = AVATARS.find(a => a.id === selectedAvatarId) || AVATARS[0];

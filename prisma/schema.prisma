@@ -50,20 +50,22 @@ model User {
   name          String?
   email         String?   @unique
   emailVerified DateTime?
-  image         String?
-  password      String?   // <-- AÑADIDO: Necesario para el CredentialsProvider
+  image         String?   // Foto de Google (si usas NextAuth con Google)
+  password      String?   
+  
+  // <-- NUEVO: Guardamos la id del avatar de Spotydle (1 al 8)
+  avatarId      String    @default("1") 
 
   accounts      Account[]
   sessions      Session[]
   
-  // Relación: Un usuario tiene muchas estadísticas (una por modo)
   stats         ModeStat[]    
 }
 
 model ModeStat {
   id                String   @id @default(cuid())
   userId            String
-  modeSlug          String   // "daily", "urbano", "rock", "90s", etc.
+  modeSlug          String   
   
   gamesPlayed       Int      @default(0)
   gamesWon          Int      @default(0)
@@ -77,7 +79,6 @@ model ModeStat {
 
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Un usuario solo puede tener un registro de stats por cada modo
   @@unique([userId, modeSlug])
 }
 
@@ -86,9 +87,9 @@ model ModeStat {
 // ==========================================
 model GameMode {
   id        String   @id @default(cuid())
-  title     String   // Ej: "90's Hits"
-  query     String   // Término para buscar en Apple Music (Ej: "90s Hits")
-  imageUrl  String   // La URL de la foto (*.mzstatic.com)
+  title     String   
+  query     String   
+  imageUrl  String   
   isLocked  Boolean  @default(false)
   slug      String   @unique
 }
