@@ -6,12 +6,14 @@ import { signIn } from 'next-auth/react';
 import Link from 'next/link'; 
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Eye, EyeOff } from "lucide-react"; 
 
 const LoginForm = () => {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
+  const [showPassword, setShowPassword] = useState(false); 
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -28,9 +30,6 @@ const LoginForm = () => {
       });
 
       if (result?.error) {
-        // --- CAMBIO CLAVE AQUÍ ---
-        // Si el error es el genérico de NextAuth ("CredentialsSignin"), ponemos uno amigable.
-        // Si no, mostramos el mensaje exacto que lanzamos con 'throw new Error' (como el de verificar email)
         if (result.error === 'CredentialsSignin') {
           setError('Email o contraseña incorrectos');
         } else {
@@ -64,16 +63,27 @@ const LoginForm = () => {
           required
           className="text-spotydle font-semibold placeholder:text-spotydle/50"
         />
-        <Input 
-          type="password" 
-          placeholder="Password" 
-          variant="light" 
-          shape="pill"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          className="text-spotydle font-semibold placeholder:text-spotydle/50"
-        />
+        
+        {/* Input de Contraseña con el ojo */}
+        <div className="relative">
+          <Input 
+            type={showPassword ? "text" : "password"} 
+            placeholder="Password" 
+            variant="light" 
+            shape="pill"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="text-spotydle font-semibold placeholder:text-spotydle/50 pr-12"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-spotydle/50 hover:text-spotydle transition-colors"
+          >
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          </button>
+        </div>
       </div>
 
       <div className="flex items-center gap-3 pl-4">
@@ -92,7 +102,6 @@ const LoginForm = () => {
         </label>
       </div>
 
-      {/* Mensaje de error dinámico */}
       {error && (
         <div className="bg-red-500/10 border border-red-500/50 p-3 rounded-2xl animate-in fade-in zoom-in duration-300">
           <p className="text-red-500 text-xs font-bold text-center leading-tight">

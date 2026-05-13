@@ -5,6 +5,6 @@ export const config = {
   matcher: [
     "/play/:path*", 
     "/profile/:path*",
-    "/leaderboard/:path*"
+    "/ranking/:path*"
   ],
 };

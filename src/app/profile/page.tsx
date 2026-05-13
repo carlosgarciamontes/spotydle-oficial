@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useGame, ModeStats } from "@/context/GameContext";
+import { ModeStats } from "@/context/GameContext"; // Solo importamos el tipo, no el hook
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, Flame, Target, Gamepad2, Edit3, X } from "lucide-react";
 
@@ -29,13 +29,14 @@ const MODES = [
 ];
 
 export default function ProfilePage() {
-  const { stats } = useGame();
+  // 1. Estados locales para guardar lo que viene de la BD
+  const [dbStats, setDbStats] = useState<Record<string, ModeStats>>({});
   const [selectedAvatarId, setSelectedAvatarId] = useState<string>("1");
+  
   const [isEditingAvatar, setIsEditingAvatar] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("total");
 
-  // Efecto para cerrar con la tecla Escape
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") setIsEditingAvatar(false);
@@ -44,23 +45,30 @@ export default function ProfilePage() {
     return () => window.removeEventListener("keydown", handleEsc);
   }, []);
 
+  // 2. Cargamos los datos reales desde el servidor
   useEffect(() => {
-    const savedAvatar = localStorage.getItem("spotydle_avatar");
-    setTimeout(() => {
-      if (savedAvatar && AVATARS.find(a => a.id === savedAvatar)) {
-        setSelectedAvatarId(savedAvatar);
+    const fetchProfileData = async () => {
+      try {
+        const res = await fetch("/api/user/profile");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.avatarId) setSelectedAvatarId(data.avatarId);
+          if (data.stats) setDbStats(data.stats);
+        }
+      } catch (error) {
+        console.error("Error al cargar el perfil de la BD", error);
+      } finally {
+        setIsLoaded(true);
       }
-      setIsLoaded(true);
-    }, 0);
+    };
+
+    fetchProfileData();
   }, []);
 
   const handleSelectAvatar = async (id: string) => {
-    // 1. Guardamos en estado y localStorage al instante (para que la UI se actualice rápido)
-    setSelectedAvatarId(id);
-    localStorage.setItem("spotydle_avatar", id);
+    setSelectedAvatarId(id); // Actualizamos visualmente al instante
     setIsEditingAvatar(false);
 
-    // 2. Avisamos a la base de datos en segundo plano
     try {
       await fetch("/api/user/avatar", {
         method: "POST",
@@ -76,13 +84,14 @@ export default function ProfilePage() {
   
   const getDisplayStats = (): ModeStats => {
     if (activeTab !== "total") {
-      return stats[activeTab] || {
+      // Leemos del estado que vino de la BD, NO del contexto local
+      return dbStats[activeTab] || {
         gamesPlayed: 0, gamesWon: 0, currentStreak: 0, maxStreak: 0,
         distribution: [0, 0, 0, 0, 0, 0], lastCompletedDate: null,
       };
     }
 
-    return Object.values(stats).reduce((acc, mode) => {
+    return Object.values(dbStats).reduce((acc, mode) => {
       return {
         gamesPlayed: acc.gamesPlayed + mode.gamesPlayed,
         gamesWon: acc.gamesWon + mode.gamesWon,
@@ -103,8 +112,9 @@ export default function ProfilePage() {
     : 0;
   const maxDistribution = Math.max(...currentModeStats.distribution, 1);
 
-  if (!isLoaded) return null;
+  if (!isLoaded) return null; // O podrías poner un spinner de carga aquí
 
+  // ... (EL RESTO DEL RETURN SE QUEDA EXACTAMENTE IGUAL) ...
   return (
     <div className="
       min-h-[100dvh] w-full bg-black text-white pb-28 pt-6 md:pt-32 px-4 

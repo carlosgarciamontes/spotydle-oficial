@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cva } from 'class-variance-authority';
-import { Home, Trophy, User } from 'lucide-react';
+import { Trophy, User, Gamepad2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItemVariants = cva(
@@ -18,8 +18,8 @@ const navItemVariants = cva(
           "scale-110"
         ],
         false: [
-          "text-sp-base",
-          "hover:text-sp-light",
+          "text-white/50",
+          "hover:text-white",
           "scale-100"
         ],
       },
@@ -37,19 +37,18 @@ interface NavTab {
   label: string;
 }
 
-interface BottomNavProps {
-  className?: string;
-}
-
-const BottomNav: React.FC<BottomNavProps> = ({ className }) => {
+const BottomNav: React.FC<{ className?: string }> = ({ className }) => {
   const pathname = usePathname();
 
-  if (pathname.startsWith('/play/')) {
+  // Mismo filtro de rutas para consistencia
+  const hideNavRoutes = ["/", "/login", "/register", "/verify", "/pending-verification"];
+
+  if (hideNavRoutes.includes(pathname) || pathname.startsWith('/play/')) {
     return null;
   }
 
   const tabs: NavTab[] = [
-    { id: 'home', href: '/', icon: Home, label: 'Home' },
+    { id: 'play', href: '/play', icon: Gamepad2, label: 'Play' },
     { id: 'ranking', href: '/ranking', icon: Trophy, label: 'Ranking' },
     { id: 'profile', href: '/profile', icon: User, label: 'Profile' },
   ];
@@ -57,8 +56,8 @@ const BottomNav: React.FC<BottomNavProps> = ({ className }) => {
   return (
     <nav 
       className={cn(
-        "fixed bottom-0 left-0 right-0 h-20",
-        "bg-black backdrop-blur-md",
+        "md:hidden fixed bottom-0 left-0 right-0 h-20",
+        "bg-black/90 backdrop-blur-md",
         "border-t border-white/10",
         "flex justify-around items-center px-4 pb-safe",
         "z-50",
@@ -67,9 +66,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ className }) => {
     >
       {tabs.map((tab) => {
         const Icon = tab.icon;
-        const isActive = tab.href === '/' 
-          ? pathname === '/' 
-          : pathname.startsWith(tab.href);
+        const isActive = pathname.startsWith(tab.href);
 
         return (
           <Link
@@ -83,6 +80,9 @@ const BottomNav: React.FC<BottomNavProps> = ({ className }) => {
               strokeWidth={isActive ? 2.5 : 2} 
               className="transition-all duration-300"
             />
+            <span className="text-[10px] font-bold uppercase mt-1 tracking-tighter">
+              {tab.label}
+            </span>
           </Link>
         );
       })}

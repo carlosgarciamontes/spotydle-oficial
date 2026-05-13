@@ -5,32 +5,43 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Eye, EyeOff } from "lucide-react";
 
 const RegisterForm = () => {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
+  const [confirmPassword, setConfirmPassword] = useState("");
+  
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (password !== confirmPassword) {
+      setError("Las contraseñas no coinciden");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const res = await fetch("/api/register", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, email, password }),
       });
 
       if (res.ok) {
-        // Redirigimos a la sala de espera profesional pasando el email
         router.push(`/pending-verification?email=${encodeURIComponent(email)}`);
       } else {
         const data = await res.json();
@@ -66,16 +77,49 @@ const RegisterForm = () => {
           required
           className="text-spotydle font-semibold placeholder:text-spotydle/50"
         />
-        <Input
-          type="password"
-          placeholder="Password"
-          variant="light"
-          shape="pill"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          className="text-spotydle font-semibold placeholder:text-spotydle/50"
-        />
+        
+        {/* Campo de Contraseña */}
+        <div className="relative">
+          <Input
+            type={showPassword ? "text" : "password"}
+            placeholder="Password"
+            variant="light"
+            shape="pill"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="text-spotydle font-semibold placeholder:text-spotydle/50 pr-12"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-spotydle/50 hover:text-spotydle transition-colors"
+          >
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          </button>
+        </div>
+
+        {/* Campo de Confirmar Contraseña con su propio Ojo */}
+        <div className="relative">
+          <Input
+            type={showPassword ? "text" : "password"}
+            placeholder="Confirm Password"
+            variant="light"
+            shape="pill"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            className="text-spotydle font-semibold placeholder:text-spotydle/50 pr-12"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-spotydle/50 hover:text-spotydle transition-colors"
+          >
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          </button>
+        </div>
+        
       </div>
 
       {error && (
@@ -85,8 +129,6 @@ const RegisterForm = () => {
           </p>
         </div>
       )}
-
-      <div className="h-1"></div>
 
       <Button
         type="submit"
