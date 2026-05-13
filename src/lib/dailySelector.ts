@@ -8,7 +8,6 @@ export async function getDailyModeTrack(modeSlug: string) {
 
   const today = new Date();
   
-  
   let slugModifier = 0;
   for (let i = 0; i < modeSlug.length; i++) {
     slugModifier += modeSlug.charCodeAt(i);
