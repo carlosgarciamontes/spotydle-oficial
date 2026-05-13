@@ -197,7 +197,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [guesses, guessDetails, gameState, targetSong, currentSlug]);
 
-  const handleGameEnd = (finalState: "won" | "lost", totalAttempts: number) => {
+  const handleGameEnd = async (finalState: "won" | "lost", totalAttempts: number) => {
     if (!currentSlug) return;
     const today = getTodayDateString();
 
@@ -232,6 +232,20 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(newStats));
       return newStats;
     });
+
+    try {
+      await fetch("/api/stats/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          modeSlug: currentSlug,
+          finalState,
+          totalAttempts,
+        }),
+      });
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const checkAlreadyGuessed = (artist: string, title: string) => {
