@@ -13,41 +13,46 @@ interface TopNavProps {
 const TopNav: React.FC<TopNavProps> = ({ className }) => {
   const pathname = usePathname();
 
+  if (pathname.startsWith('/play/')) {
+    return null;
+  }
+
   const tabs = [
     { href: "/", label: "Home" },
-    { href: "/crew", label: "Crew" },
-    { href: "/friends", label: "Social" },
-    { href: "/stats", label: "Stats" },
+    { href: "/ranking", label: "Ranking" },
+    { href: "/profile", label: "Profile" },
   ];
 
   return (
     <header
       className={cn(
-        "hidden md:flex fixed top-0 left-0 right-0 w-full h-[100px] bg-black/90 backdrop-blur-md items-center px-12 border-b border-white/10 z-[100]",
+        "hidden md:flex fixed top-0 left-0 right-0 w-full h-[100px] bg-black/90 backdrop-blur-md items-center border-b border-white/10 z-[100]",
         className,
       )}
     >
-      <Link
-        href="/"
-        className="flex items-center gap-4 hover:opacity-80 transition-opacity"
-      >
-        <div className="relative w-16 h-16 flex items-center justify-center">
-          <Image
-            src="/assets/Spotydle.png"
-            alt="Spotydle Logo"
-            fill
-            className="object-contain"
-            priority
-          />
-        </div>
-        <span className="text-white text-[28px] font-bold tracking-wide">
-          Spotydle
-        </span>
-      </Link>
+      <nav className="w-full flex items-center justify-between px-12 lg:px-24">
+        <Link
+          href="/"
+          className="flex items-center gap-4 hover:opacity-80 transition-opacity"
+        >
+          <div className="relative w-16 h-16 flex items-center justify-center">
+            <Image
+              src="/assets/Spotydle.png"
+              alt="Spotydle Logo"
+              fill
+              className="object-contain"
+              priority
+            />
+          </div>
+          <span className="text-white text-[28px] font-bold tracking-wide">
+            Spotydle
+          </span>
+        </Link>
 
-      <nav className="flex-1 flex justify-between mx-12 lg:mx-24">
         {tabs.map((tab) => {
-          const isActive = pathname === tab.href;
+          const isActive = tab.href === '/' 
+            ? pathname === '/' 
+            : pathname.startsWith(tab.href);
 
           return (
             <Link

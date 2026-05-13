@@ -281,6 +281,7 @@ export default function SandboxPage() {
         hasWon={gameState === "won"}
         songData={targetSong || mockWinData}
         guesses={guesses}
+        modeName="Sandbox"
         onBackToMenu={() => window.location.reload()}
       />
 

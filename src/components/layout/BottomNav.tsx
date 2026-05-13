@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cva } from 'class-variance-authority';
-import { Home, MessageSquare, Users, User } from 'lucide-react';
+import { Home, Trophy, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItemVariants = cva(
@@ -44,11 +44,14 @@ interface BottomNavProps {
 const BottomNav: React.FC<BottomNavProps> = ({ className }) => {
   const pathname = usePathname();
 
+  if (pathname.startsWith('/play/')) {
+    return null;
+  }
+
   const tabs: NavTab[] = [
     { id: 'home', href: '/', icon: Home, label: 'Home' },
-    { id: 'crew', href: '/crew', icon: MessageSquare, label: 'Crew' },
-    { id: 'add-friends', href: '/friends', icon: Users, label: 'Add Friends' },
-    { id: 'profile', href: '/stats', icon: User, label: 'Stats' },
+    { id: 'ranking', href: '/ranking', icon: Trophy, label: 'Ranking' },
+    { id: 'profile', href: '/profile', icon: User, label: 'Profile' },
   ];
 
   return (
@@ -64,7 +67,9 @@ const BottomNav: React.FC<BottomNavProps> = ({ className }) => {
     >
       {tabs.map((tab) => {
         const Icon = tab.icon;
-        const isActive = pathname === tab.href;
+        const isActive = tab.href === '/' 
+          ? pathname === '/' 
+          : pathname.startsWith(tab.href);
 
         return (
           <Link
