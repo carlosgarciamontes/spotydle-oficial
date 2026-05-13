@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils';
 import { useGame } from '@/context/GameContext';
 import { useReverseAudio } from '@/hooks/useReverseAudio';
 
-// --- 1. DEFINICIÓN DE LA NUEVA ANIMACIÓN AMIGABLE (PULSO DE BRILLO SUAVE) ---
 const FriendlyUnlockAnimationCSS = () => (
   <style>{`
     @keyframes spotydle-unlock-soft {
@@ -15,8 +14,8 @@ const FriendlyUnlockAnimationCSS = () => (
         box-shadow: 0 0 35px rgba(233, 64, 150, 0.5);
       }
       50% {
-        transform: scale(1.1); /* Ligera expansión amigable */
-        box-shadow: 0 0 60px rgba(233, 64, 150, 0.9); /* Brillo intenso suave */
+        transform: scale(1.1);
+        box-shadow: 0 0 60px rgba(233, 64, 150, 0.9);
       }
       100% {
         transform: scale(1);
@@ -24,7 +23,7 @@ const FriendlyUnlockAnimationCSS = () => (
       }
     }
     .animate-unlock-soft {
-      animation: spotydle-unlock-soft 0.8s ease-in-out; /* Más lenta y suave */
+      animation: spotydle-unlock-soft 0.8s ease-in-out;
       animation-iteration-count: 1;
     }
   `}</style>
@@ -32,20 +31,22 @@ const FriendlyUnlockAnimationCSS = () => (
 
 interface AudioPlayerProps {
   className?: string;
+  autoPlayClueId?: number | null;
+  onPlayClear?: () => void;
 }
 
-const AudioPlayer: React.FC<AudioPlayerProps> = ({ className }) => {
-  const { targetSong, guesses, gameState } = useGame();
+const AudioPlayer: React.FC<AudioPlayerProps> = ({ className, autoPlayClueId, onPlayClear }) => {
+  const { targetSong, guesses, gameState, clues } = useGame();
+  
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0); 
   const [currentTime, setCurrentTime] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
   const [hasNewAudio, setHasNewAudio] = useState(true);
   
-  // --- 2. ESTADOS Y REFS PARA LA VIBRACIÓN/ANIMACIÓN AMIGABLE ---
-  const [isVibrating, setIsVibrating] = useState(false); // Mantengo el nombre del estado por compatibilidad, pero es la animación suave
-  const prevMaxDurationRef = useRef<number>(0); // Guardamos la duración anterior
-  const prevIsReverseRef = useRef<boolean>(false); // Nuevo: Vigilamos el estado del invertido
+  const [isVibrating, setIsVibrating] = useState(false);
+  const [overrideClue, setOverrideClue] = useState<{ maxDuration: number, isReverseTurn: boolean } | null>(null);
+  const prevFallosRef = useRef<number>(guesses.length);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isFadingOut = useRef(false);
@@ -62,55 +63,94 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ className }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetSong?.previewUrl]);
 
-  // Lógica de turnos invariable
-  let maxDuration = 0; 
-  let isReverseTurn = false;
+  // --- LÓGICA DINÁMICA DEL REPRODUCTOR PRINCIPAL ---
+  let defaultMaxDuration = 0; 
+  let defaultIsReverseTurn = false;
 
   if (gameState === 'won' || gameState === 'lost') {
-    maxDuration = 30; 
-    isReverseTurn = false;
+    defaultMaxDuration = 30; 
+    defaultIsReverseTurn = false;
   } else {
     const fallos = guesses.length;
-    if (fallos === 0) { maxDuration = 0; } 
-    else if (fallos === 1 || fallos === 2) { maxDuration = 5; isReverseTurn = true; } 
-    else if (fallos === 3 || fallos === 4) { maxDuration = 5; isReverseTurn = false; } 
-    else if (fallos >= 5) { maxDuration = 15; isReverseTurn = false; }
+    // Buscamos hacia atrás cuál fue el último audio desbloqueado
+    for (let i = fallos; i >= 0; i--) {
+      const clue = clues[i];
+      // TypeScript estrecha el tipo aquí: si es 'audio', sabe que tiene '.duration'
+      if (clue && clue.type === 'audio') {
+        defaultMaxDuration = clue.duration;
+        defaultIsReverseTurn = clue.label.toLowerCase().includes('invertido');
+        break;
+      }
+    }
   }
 
-  // --- 3. LÓGICA DE DETECCION DE DESBLOQUEO MULTI-PISTA (Mecanismo amigable) ---
+  const maxDuration = overrideClue ? overrideClue.maxDuration : defaultMaxDuration;
+  const isReverseTurn = overrideClue ? overrideClue.isReverseTurn : defaultIsReverseTurn;
+
+  // --- LÓGICA DINÁMICA AL PULSAR UNA PASTILLA DE AUDIO ---
   useEffect(() => {
-    // Definimos los 3 momentos clave de desbloqueo:
-    const hasUnlockedInverted = prevMaxDurationRef.current === 0 && maxDuration === 5;
-    const hasUnlockedNormal5s = prevIsReverseRef.current === true && isReverseTurn === false;
-    const hasUnlockedNormal15s = prevMaxDurationRef.current === 5 && maxDuration === 15;
+    if (autoPlayClueId) {
+      const clickedClue = clues.find(c => c.id === autoPlayClueId);
+      
+      // Al comprobar clue.type === 'audio', eliminamos la necesidad de usar 'any'
+      if (clickedClue && clickedClue.type === 'audio') {
+        const newMax = clickedClue.duration;
+        const newRev = clickedClue.label.toLowerCase().includes('invertido');
 
-    // Si ocurre cualquiera de los tres desbloqueos
-    if (hasUnlockedInverted || hasUnlockedNormal5s || hasUnlockedNormal15s) {
-      setIsVibrating(true); // Encendemos la animación suave
+        if (isPlaying) {
+          if (isReverseTurn) stopReversed();
+          else audioRef.current?.pause();
+        }
 
-      // Feedback sensorial: una vibración haptic súper corta si el móvil lo permite
-      if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(50); // 50ms es casi imperceptible, solo un "toque" suave
+        setOverrideClue({ maxDuration: newMax, isReverseTurn: newRev });
+        setCurrentTime(0);
+        setProgress(0);
+        
+        setTimeout(() => {
+          if (newRev) {
+            if (isReversedReady) {
+              playReversed(newMax);
+              setIsPlaying(true);
+            }
+          } else {
+            if (audioRef.current) {
+              audioRef.current.currentTime = 0;
+              audioRef.current.volume = 1;
+              isFadingOut.current = false;
+              audioRef.current.play().then(() => setIsPlaying(true)).catch(e => console.error(e));
+            }
+          }
+        }, 50);
       }
 
-      // Apagamos la animación después de 800ms (lo que dura la animación amigable)
-      setTimeout(() => setIsVibrating(false), 800); 
+      if (onPlayClear) onPlayClear();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPlayClueId, clues]);
 
-    // Actualizamos las referencias para el próximo render
-    prevMaxDurationRef.current = maxDuration;
-    prevIsReverseRef.current = isReverseTurn;
-  }, [maxDuration, isReverseTurn]);
-
+  // --- VIBRACIÓN AL DESBLOQUEAR NUEVA PISTA DE AUDIO ---
+  useEffect(() => {
+    const prevFallos = prevFallosRef.current;
+    const currentFallos = guesses.length;
+    
+    if (currentFallos > prevFallos) {
+      const newlyUnlockedClue = clues[currentFallos];
+      if (newlyUnlockedClue && newlyUnlockedClue.type === 'audio') {
+        setIsVibrating(true);
+        if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(50);
+        setTimeout(() => setIsVibrating(false), 800);
+      }
+    }
+    prevFallosRef.current = currentFallos;
+  }, [guesses.length, clues]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setHasNewAudio(true);
     }, 0);
     return () => clearTimeout(timer);
-  }, [maxDuration]);
+  }, [defaultMaxDuration, defaultIsReverseTurn]);
 
-  // Simulador barra invariable
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isPlaying && isReverseTurn) {
@@ -119,6 +159,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ className }) => {
         const elapsed = (Date.now() - startTime) / 1000;
         if (elapsed >= maxDuration) {
           setIsPlaying(false);
+          setOverrideClue(null);
           setCurrentTime(maxDuration);
           setProgress(100);
           clearInterval(interval);
@@ -132,22 +173,27 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ className }) => {
   }, [isPlaying, isReverseTurn, maxDuration, currentTime]);
 
   const togglePlay = () => {
-    if (!audioRef.current || !targetSong?.previewUrl || maxDuration === 0) return;
+    if (!audioRef.current || !targetSong?.previewUrl || defaultMaxDuration === 0) return;
     if (hasNewAudio) setHasNewAudio(false);
     
     if (isPlaying) {
       if (isReverseTurn) { stopReversed(); } 
       else { audioRef.current.pause(); }
       setIsPlaying(false);
+      setOverrideClue(null);
     } else {
-      if (isReverseTurn) {
+      setOverrideClue(null);
+      const playMax = defaultMaxDuration;
+      const playRev = defaultIsReverseTurn;
+
+      if (playRev) {
         if (isReversedReady) {
-          if (currentTime >= maxDuration) { setCurrentTime(0); setProgress(0); }
-          playReversed(maxDuration);
+          if (currentTime >= playMax) { setCurrentTime(0); setProgress(0); }
+          playReversed(playMax);
           setIsPlaying(true);
-        } else { console.log("Audio procesándose..."); }
+        }
       } else {
-        if (audioRef.current.currentTime >= maxDuration) { audioRef.current.currentTime = 0; }
+        if (audioRef.current.currentTime >= playMax) { audioRef.current.currentTime = 0; }
         audioRef.current.volume = 1;
         isFadingOut.current = false;
         audioRef.current.play();
@@ -175,11 +221,12 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ className }) => {
             audioRef.current.currentTime = maxDuration;
           }
           setIsPlaying(false);
+          setOverrideClue(null);
         }
       }, 80); 
     }
     if (current >= maxDuration && !isFadingOut.current) {
-      audioRef.current.pause(); audioRef.current.currentTime = maxDuration; setIsPlaying(false);
+      audioRef.current.pause(); audioRef.current.currentTime = maxDuration; setIsPlaying(false); setOverrideClue(null);
     }
   };
 
@@ -198,6 +245,8 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ className }) => {
 
   useEffect(() => {
     if (!audioRef.current) return;
+    setOverrideClue(null);
+    
     if (gameState === 'won' || gameState === 'lost') {
       stopReversed();
       audioRef.current.currentTime = 15; audioRef.current.volume = 0; isFadingOut.current = false;
@@ -215,7 +264,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ className }) => {
       return () => clearTimeout(autoPlayTimer);
     } else {
       audioRef.current.pause(); audioRef.current.currentTime = 0; audioRef.current.volume = 1; isFadingOut.current = false; stopReversed();
-      const resetTimer = setTimeout(() => { setIsPlaying(false); setProgress(0); setCurrentTime(0); }, 0);
+      const resetTimer = setTimeout(() => { setIsPlaying(false); setProgress(0); setCurrentTime(0); setOverrideClue(null); }, 0);
       return () => clearTimeout(resetTimer);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -226,14 +275,13 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ className }) => {
   return (
     <div className={cn("flex flex-col items-center w-full my-8 gap-8 relative", className)}>
       
-      {/* 4. INYECTAMOS LA NUEVA ANIMACIÓN AMIGABLE */}
       <FriendlyUnlockAnimationCSS />
 
       <audio 
         ref={audioRef} 
         src={targetSong.previewUrl} 
         onTimeUpdate={handleTimeUpdate}
-        onEnded={() => setIsPlaying(false)}
+        onEnded={() => { setIsPlaying(false); setOverrideClue(null); }}
       />
 
       <div className="flex items-center justify-center w-full gap-2 md:gap-4">
@@ -256,27 +304,16 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ className }) => {
 
         <button 
           onClick={togglePlay}
-          disabled={maxDuration === 0}
+          disabled={defaultMaxDuration === 0}
           className={cn(
-            // Fondo rosa y sombra vibrante invariables
             "w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center z-10 mx-2 transition-all shrink-0 bg-spotydle shadow-[0_0_35px_rgba(233,64,150,0.5)]",
-            
-            // Cursores
-            maxDuration === 0 ? "cursor-not-allowed" : "cursor-pointer",
-            
-            // --- 5. MODIFICACIÓN DE LA LÓGICA DE ANIMACIÓN DEL BOTÓN ---
-            // A. Mantenemos: No parpadea si está bloqueado.
-            // B. Mantenemos: Parpadea (pulse) SOLO si hay audio (maxDuration > 0).
-            !isPlaying && hasNewAudio && maxDuration > 0 && "animate-pulse scale-105", 
-            
-            // C. Mantenemos: Solo permitimos hover si está desbloqueado.
-            maxDuration > 0 && "hover:scale-105 active:scale-95",
-
-            // D. NUEVO: Añadimos la NUEVA clase de animación suave (animate-unlock-soft) si el estado es true.
+            defaultMaxDuration === 0 ? "cursor-not-allowed" : "cursor-pointer",
+            !isPlaying && hasNewAudio && defaultMaxDuration > 0 && "animate-pulse scale-105", 
+            defaultMaxDuration > 0 && "hover:scale-105 active:scale-95",
             isVibrating && "animate-unlock-soft"
           )}
         >
-          {maxDuration === 0 ? (
+          {defaultMaxDuration === 0 ? (
             <Lock size={36} className="text-[#2A2A2A]" />
           ) : isPlaying ? (
             <Pause size={36} className="text-[#2A2A2A] fill-current" />

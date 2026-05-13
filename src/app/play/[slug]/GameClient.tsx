@@ -112,6 +112,9 @@ export default function GameClient({ mode }: GameClientProps) {
   const [isSearching, setIsSearching] = useState(false);
   const debouncedSearchValue = useDebounce(searchValue, 500);
   const [isInitializing, setIsInitializing] = useState(true);
+  
+  // Nuevo estado para controlar qué pista de audio enviar al reproductor
+  const [autoPlayClueId, setAutoPlayClueId] = useState<number | null>(null);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -228,10 +231,20 @@ export default function GameClient({ mode }: GameClientProps) {
             <GuessGrid guesses={guesses} />
           </div>
 
-          <AudioPlayer />
+          <AudioPlayer 
+            autoPlayClueId={autoPlayClueId} 
+            onPlayClear={() => setAutoPlayClueId(null)} 
+          />
 
           <div className="w-full">
-            <Clues clues={clues} />
+            <Clues 
+              clues={clues} 
+              onClueClick={(clue) => {
+                if (clue.type === "audio" && clue.status !== "locked") {
+                  setAutoPlayClueId(clue.id);
+                }
+              }} 
+            />
           </div>
         </div>
       )}
@@ -239,9 +252,10 @@ export default function GameClient({ mode }: GameClientProps) {
       <div className="w-full max-w-md flex items-center gap-3 h-14 mb-2 md:mb-8 shrink-0">
         <Button
           onClick={skipTurn}
-          intent="outline"
+          intent="ghost"
           size="default"
           disabled={isLoadingGame}
+          className="text-gray-500 hover:text-white"
         >
           SKIP
         </Button>
@@ -263,13 +277,13 @@ export default function GameClient({ mode }: GameClientProps) {
         <Button
           onClick={handleGuessSubmit}
           disabled={!selectedSong || isAlreadyGuessed || isLoadingGame}
-          intent="primary"
+          intent="outline"
           className={`${
             !selectedSong
-              ? "opacity-30 cursor-not-allowed bg-gray-800 text-gray-500"
+              ? "cursor-not-allowed"
               : isAlreadyGuessed
                 ? "opacity-60 cursor-not-allowed bg-yellow-600 text-white"
-                : "text-black opacity-100"
+                : "opacity-100 hover:scale-110 animate-pulse border-spotydle text-spotydle shadow-[0_0_15px_rgba(233,64,150,0.5)]"
           }`}
         >
           {isAlreadyGuessed ? "REPEATED" : "GUESS"}
