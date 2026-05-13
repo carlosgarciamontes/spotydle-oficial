@@ -4,9 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useSession } from "next-auth/react";
 import { GuessResult } from "@/components/game/GuessGrid";
 import { Clue } from "@/components/game/Clues";
-import { getSongsByArtistId } from "@/services/itunesService";
-import { getDailyTrack } from "@/lib/dailySelector";
-import { PLAYLISTS } from "@/data/playlists";
+import { getDailyModeTrack } from "@/lib/dailySelector";
 
 export interface TargetSong {
   artist: string;
@@ -123,7 +121,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
           localStorage.removeItem(storageKey);
         }
       } catch (error) {
-        console.error("Error al cargar la partida guardada", error);
+        console.error(error);
       }
     }
 
@@ -133,44 +131,21 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       setGameState("playing");
       setTargetSong(null);
 
-      if (slug === "daily") {
-        const dailyTrack = await getDailyTrack();
-        if (dailyTrack) {
-          const trackData = dailyTrack as unknown as Record<string, unknown>;
-          const appleUrl = (trackData.trackViewUrl || trackData.appleMusicUrl) as string | undefined;
-          setTargetSong({
-            artist: dailyTrack.artist,
-            title: dailyTrack.title,
-            coverUrl: dailyTrack.coverUrl,
-            previewUrl: dailyTrack.previewUrl,
-            appleMusicUrl: appleUrl,
-            releaseYear: dailyTrack.releaseYear,
-            genre: dailyTrack.genre,
-            isExplicit: dailyTrack.isExplicit,
-          });
-        }
-      } else {
-        const artistIds = PLAYLISTS[slug as keyof typeof PLAYLISTS];
-        if (artistIds && artistIds.length > 0) {
-          const randomId = artistIds[Math.floor(Math.random() * artistIds.length)];
-          const songs = await getSongsByArtistId(randomId);
-
-          if (songs && songs.length > 0) {
-            const track = songs[Math.floor(Math.random() * songs.length)];
-            const trackData = track as unknown as Record<string, unknown>;
-            const appleUrl = (trackData.trackViewUrl || trackData.appleMusicUrl) as string | undefined;
-            setTargetSong({
-              artist: track.artist,
-              title: track.title,
-              coverUrl: track.coverUrl,
-              previewUrl: track.previewUrl,
-              appleMusicUrl: appleUrl,
-              releaseYear: track.releaseYear,
-              genre: track.genre,
-              isExplicit: track.isExplicit,
-            });
-          }
-        }
+      const dailyTrack = await getDailyModeTrack(slug);
+      
+      if (dailyTrack) {
+        const trackData = dailyTrack as unknown as Record<string, unknown>;
+        const appleUrl = (trackData.trackViewUrl || trackData.appleMusicUrl) as string | undefined;
+        setTargetSong({
+          artist: dailyTrack.artist,
+          title: dailyTrack.title,
+          coverUrl: dailyTrack.coverUrl,
+          previewUrl: dailyTrack.previewUrl,
+          appleMusicUrl: appleUrl,
+          releaseYear: dailyTrack.releaseYear,
+          genre: dailyTrack.genre,
+          isExplicit: dailyTrack.isExplicit,
+        });
       }
     }
   };
@@ -188,7 +163,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
           }
         }
       } catch (error) {
-        console.error("Error cargando stats globales:", error);
+        console.error(error);
       }
     };
 
@@ -254,7 +229,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         }),
       });
     } catch (error) {
-      console.error("Error guardando partida en la BD", error);
+      console.error(error);
     }
   };
 

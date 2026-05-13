@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
 import WinModal from "@/components/game/WinModal";
 import GuessGrid from "@/components/game/GuessGrid";
@@ -93,6 +94,7 @@ const GameSkeleton = () => {
 };
 
 export default function GameClient({ mode }: GameClientProps) {
+  const { status } = useSession();
   const {
     guesses,
     clues,
@@ -112,6 +114,8 @@ export default function GameClient({ mode }: GameClientProps) {
   const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
+    if (status === "loading") return;
+
     const initialize = async () => {
       setIsInitializing(true);
       await initMode(mode.slug);
@@ -119,9 +123,7 @@ export default function GameClient({ mode }: GameClientProps) {
     };
 
     initialize();
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode.slug]);
+  }, [mode.slug, status]);
 
   useEffect(() => {
     async function performSearch() {
@@ -180,10 +182,9 @@ export default function GameClient({ mode }: GameClientProps) {
     ? checkAlreadyGuessed(selectedSong.artist, selectedSong.title)
     : false;
 
-  const isLoadingGame = isInitializing || !targetSong;
+  const isLoadingGame = isInitializing || !targetSong || status === "loading";
 
   return (
-    // --- RESPONSIVE FIX: min-h-[100dvh] y overflow-y-auto en lugar de h-screen/overflow-hidden ---
     <div className="min-h-[100dvh] w-full bg-black text-white flex flex-col items-center justify-between py-6 px-4 overflow-y-auto">
       {targetSong && (
         <WinModal
