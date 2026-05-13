@@ -20,24 +20,31 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null;
+          throw new Error("Faltan credenciales");
         }
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
         });
 
+        // 1. Validar que el usuario exista y tenga contraseña (no sea solo de Google)
         if (!user || !user.password) {
-          return null;
+          throw new Error("Credenciales inválidas");
         }
 
+        // 2. Bloquear el acceso si el email no ha sido verificado
+        if (!user.emailVerified) {
+          throw new Error("Por favor, verifica tu correo electrónico antes de iniciar sesión.");
+        }
+
+        // 3. Comprobar que la contraseña es correcta
         const isPasswordValid = await bcrypt.compare(
           credentials.password,
           user.password
         );
 
         if (!isPasswordValid) {
-          return null;
+          throw new Error("Credenciales inválidas");
         }
 
         return {

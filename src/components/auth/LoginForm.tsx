@@ -12,7 +12,6 @@ const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
-  // Estados para manejar la experiencia de usuario
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -22,19 +21,24 @@ const LoginForm = () => {
     setIsLoading(true);
 
     try {
-      // Llamamos a NextAuth con el proveedor de credenciales
       const result = await signIn('credentials', {
         email,
         password,
-        redirect: false, // Evitamos recargar la página para manejar el error nosotros
+        redirect: false, 
       });
 
       if (result?.error) {
-        setError('Email o contraseña incorrectos');
+        // --- CAMBIO CLAVE AQUÍ ---
+        // Si el error es el genérico de NextAuth ("CredentialsSignin"), ponemos uno amigable.
+        // Si no, mostramos el mensaje exacto que lanzamos con 'throw new Error' (como el de verificar email)
+        if (result.error === 'CredentialsSignin') {
+          setError('Email o contraseña incorrectos');
+        } else {
+          setError(result.error);
+        }
       } else {
-        // Si hay éxito, redirigimos al juego
         router.push('/play'); 
-        router.refresh(); // Refrescamos para que el AuthProvider reconozca la sesión
+        router.refresh(); 
       }
     } catch (err) {
       setError('Ocurrió un error inesperado');
@@ -44,7 +48,6 @@ const LoginForm = () => {
   };
 
   const handleGoogleLogin = () => {
-    // Redirige directamente usando el proveedor de Google
     signIn('google', { callbackUrl: '/play' }); 
   };
 
@@ -89,14 +92,16 @@ const LoginForm = () => {
         </label>
       </div>
 
-      {/* Mensaje de error visual si fallan las credenciales */}
+      {/* Mensaje de error dinámico */}
       {error && (
-        <p className="text-red-500 text-sm font-semibold text-center animate-pulse">
-          {error}
-        </p>
+        <div className="bg-red-500/10 border border-red-500/50 p-3 rounded-2xl animate-in fade-in zoom-in duration-300">
+          <p className="text-red-500 text-xs font-bold text-center leading-tight">
+            {error}
+          </p>
+        </div>
       )}
 
-      <div className="h-2"></div>
+      <div className="h-1"></div>
 
       <Button 
         type="button"
@@ -124,7 +129,6 @@ const LoginForm = () => {
         {isLoading ? 'Cargando...' : 'Sign in'}
       </Button>
 
-      {/* Enlace para ir a Register si no tienes cuenta */}
       <div className="text-center mt-6">
         <Link 
           href="/register" 

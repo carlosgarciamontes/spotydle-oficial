@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation"; // <-- Añadimos el router para redirigir
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -12,7 +12,6 @@ const RegisterForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // Estados para manejar la experiencia de usuario
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -31,10 +30,8 @@ const RegisterForm = () => {
       });
 
       if (res.ok) {
-        setUsername("");
-        setEmail("");
-        setPassword("");
-        router.push("/login");
+        // Redirigimos a la sala de espera profesional pasando el email
+        router.push(`/pending-verification?email=${encodeURIComponent(email)}`);
       } else {
         const data = await res.json();
         setError(data.message || "Error al registrar");
@@ -81,14 +78,15 @@ const RegisterForm = () => {
         />
       </div>
 
-      {/* Mostrar mensaje de error si existe */}
       {error && (
-        <p className="text-red-500 text-sm font-semibold text-center">
-          {error}
-        </p>
+        <div className="bg-red-500/10 border border-red-500/50 p-3 rounded-2xl animate-in fade-in zoom-in duration-300">
+          <p className="text-red-500 text-xs font-bold text-center leading-tight">
+            {error}
+          </p>
+        </div>
       )}
 
-      <div className="h-2"></div>
+      <div className="h-1"></div>
 
       <Button
         type="submit"
@@ -100,16 +98,14 @@ const RegisterForm = () => {
         {isLoading ? "Cargando..." : "Sign up"}
       </Button>
 
-      <Link href="/login" className="w-full block">
-        <Button
-          type="button"
-          intent="ghost"
-          size="default"
-          className="w-full text-spotydle hover:underline font-bold"
+      <div className="text-center mt-6">
+        <Link 
+          href="/login" 
+          className="text-spotydle font-bold text-sm hover:underline transition-all"
         >
           Already have an account? Log in
-        </Button>
-      </Link>
+        </Link>
+      </div>
     </form>
   );
 };
