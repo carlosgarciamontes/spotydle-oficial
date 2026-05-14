@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next"; // Asegúrate de importar desde /next
+import { getServerSession } from "next-auth/next";
 import prisma from "@/lib/prisma";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"; // Ajusta esta ruta a tu config de NextAuth
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-// 1. Interfaz para el Frontend (lo que espera tu ProfilePage)
 interface FrontendModeStats {
   gamesPlayed: number;
   gamesWon: number;
@@ -11,9 +10,13 @@ interface FrontendModeStats {
   maxStreak: number;
   distribution: number[];
   lastCompletedDate: string | null;
+  lastGameState: string | null;
+  lastTargetSong: unknown | null;
+  lastGuesses: unknown | null;
+  lastGuessDetails: unknown | null;
+  lastPlayedDate: string | null;
 }
 
-// 2. Interfaz que mapea EXACTAMENTE tu modelo ModeStat de Prisma
 interface PrismaModeStat {
   id: string;
   userId: string;
@@ -24,6 +27,11 @@ interface PrismaModeStat {
   maxStreak: number;
   distribution: number[];
   lastCompletedDate: string | null;
+  lastGameState: string | null;
+  lastTargetSong: unknown | null;
+  lastGuesses: unknown | null;
+  lastGuessDetails: unknown | null;
+  lastPlayedDate: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,7 +44,6 @@ export async function GET() {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    // Buscamos al usuario usando el nombre de la relación 'stats' que definiste
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
       include: {
@@ -48,10 +55,8 @@ export async function GET() {
       return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
     }
 
-    // 3. Objeto para formatear la respuesta
     const formattedStats: Record<string, FrontendModeStats> = {};
     
-    // 4. Mapeo estricto
     if (user.stats && user.stats.length > 0) {
       user.stats.forEach((stat: PrismaModeStat) => {
         formattedStats[stat.modeSlug] = {
@@ -60,7 +65,12 @@ export async function GET() {
           currentStreak: stat.currentStreak,
           maxStreak: stat.maxStreak,
           distribution: stat.distribution,
-          lastCompletedDate: stat.lastCompletedDate
+          lastCompletedDate: stat.lastCompletedDate,
+          lastGameState: stat.lastGameState,
+          lastTargetSong: stat.lastTargetSong,
+          lastGuesses: stat.lastGuesses,
+          lastGuessDetails: stat.lastGuessDetails,
+          lastPlayedDate: stat.lastPlayedDate
         };
       });
     }
@@ -71,7 +81,6 @@ export async function GET() {
     }, { status: 200 });
 
   } catch (error) {
-    console.error("🔴 Error en API Profile:", error);
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
   }
 }

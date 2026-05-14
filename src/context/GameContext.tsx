@@ -31,6 +31,11 @@ export interface ModeStats {
   maxStreak: number;
   distribution: number[];
   lastCompletedDate: string | null;
+  lastGameState?: "playing" | "won" | "lost";
+  lastTargetSong?: TargetSong;
+  lastGuesses?: GuessResult[];
+  lastGuessDetails?: GuessDetail[];
+  lastPlayedDate?: string | null;
 }
 
 export type GameStats = Record<string, ModeStats>;
@@ -100,6 +105,35 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     return `spotydle_${type}_${userId}_${slug}`;
   };
 
+  const syncProgress = async (
+    currentGameState: "playing" | "won" | "lost",
+    currentGuesses: GuessResult[],
+    currentDetails: GuessDetail[],
+    isEnd: boolean,
+    songInfo: TargetSong
+  ) => {
+    if (!currentSlug || !session?.user?.email) return;
+
+    try {
+      await fetch("/api/stats/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          modeSlug: currentSlug,
+          gameState: currentGameState,
+          guesses: currentGuesses,
+          guessDetails: currentDetails,
+          targetSong: songInfo,
+          isGameEnd: isEnd,
+          totalAttempts: currentGuesses.length,
+          date: getTodayDateString(),
+        }),
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const initMode = async (slug: string) => {
     if (currentSlug === slug) return;
     setCurrentSlug(slug);
@@ -119,6 +153,26 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
           loadedFromSave = true;
         } else {
           localStorage.removeItem(storageKey);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    if (!loadedFromSave && session?.user?.email) {
+      try {
+        const res = await fetch("/api/user/profile");
+        if (res.ok) {
+          const data = await res.json();
+          const dbStat = data.stats?.[slug];
+          
+          if (dbStat && dbStat.lastPlayedDate === getTodayDateString() && dbStat.lastTargetSong) {
+            setTargetSong(dbStat.lastTargetSong);
+            setGuesses(dbStat.lastGuesses || []);
+            setGuessDetails(dbStat.lastGuessDetails || []);
+            setGameState(dbStat.lastGameState || "playing");
+            loadedFromSave = true;
+          }
         }
       } catch (error) {
         console.error(error);
@@ -184,7 +238,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [guesses, guessDetails, gameState, targetSong, currentSlug, session?.user?.email]);
 
-  const handleGameEnd = async (finalState: "won" | "lost", totalAttempts: number) => {
+  const updateLocalStatsState = (finalState: "won" | "lost", totalAttempts: number) => {
     if (!currentSlug) return;
     const today = getTodayDateString();
 
@@ -217,20 +271,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
       return { ...prevStats, [modeKey]: updatedModeStats };
     });
-
-    try {
-      await fetch("/api/stats/update", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          modeSlug: currentSlug,
-          finalState,
-          totalAttempts,
-        }),
-      });
-    } catch (error) {
-      console.error(error);
-    }
   };
 
   const checkAlreadyGuessed = (artist: string, title: string) => {
@@ -277,27 +317,41 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const newGuesses = [...guesses, result];
+    const newDetails = [...guessDetails, { artist: userArtist, song: userTitle, artistCorrect: artistMatch, songCorrect: titleMatch }];
+    
     setGuesses(newGuesses);
-    setGuessDetails([...guessDetails, { artist: userArtist, song: userTitle, artistCorrect: artistMatch, songCorrect: titleMatch }]);
+    setGuessDetails(newDetails);
 
     if (newGuesses.length >= 6 && result !== "correct") {
       newGameState = "lost";
     }
+    
+    setGameState(newGameState);
+
     if (newGameState !== "playing") {
-      setGameState(newGameState);
-      handleGameEnd(newGameState, newGuesses.length);
+      updateLocalStatsState(newGameState, newGuesses.length);
     }
+
+    syncProgress(newGameState, newGuesses, newDetails, newGameState !== "playing", targetSong);
   };
 
   const skipTurn = () => {
-    if (gameState !== "playing") return;
+    if (gameState !== "playing" || !targetSong) return;
+    
+    let newGameState: "playing" | "won" | "lost" = gameState;
     const newGuesses: GuessResult[] = [...guesses, "wrong"];
+    const newDetails = [...guessDetails, { artist: "Skipped", song: "", artistCorrect: false, songCorrect: false }];
+    
     setGuesses(newGuesses);
-    setGuessDetails([...guessDetails, { artist: "Skipped", song: "", artistCorrect: false, songCorrect: false }]);
+    setGuessDetails(newDetails);
+    
     if (newGuesses.length >= 6) {
-      setGameState("lost");
-      handleGameEnd("lost", newGuesses.length);
+      newGameState = "lost";
+      setGameState(newGameState);
+      updateLocalStatsState(newGameState, newGuesses.length);
     }
+
+    syncProgress(newGameState, newGuesses, newDetails, newGameState !== "playing", targetSong);
   };
 
   return (
