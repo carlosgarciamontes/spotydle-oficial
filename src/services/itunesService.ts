@@ -27,18 +27,13 @@ export async function searchSongsGlobal(query: string) {
 
     const data: iTunesResponse = await response.json();
 
-
     const uniqueSongs = new Map();
 
     data.results.forEach((track) => {
       const artist = track.artistName;
       const rawTitle = track.trackName;
-      const cleanTitle = rawTitle
-        .replace(/[\(\[].*?[\)\]]|-.*$/g, "")
-        .trim()
-        .toLowerCase();
 
-      const uniqueKey = `${artist.toLowerCase()}-${cleanTitle}`;
+      const uniqueKey = `${artist.toLowerCase()}-${rawTitle.toLowerCase()}`;
 
       if (!uniqueSongs.has(uniqueKey)) {
         uniqueSongs.set(uniqueKey, {
