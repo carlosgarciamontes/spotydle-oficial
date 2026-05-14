@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cva } from 'class-variance-authority';
-import { Trophy, User, Gamepad2 } from 'lucide-react';
+import { Trophy, User, Gamepad2, Music } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItemVariants = cva(
@@ -48,9 +48,9 @@ const BottomNav: React.FC<{ className?: string }> = ({ className }) => {
   }
 
   const tabs: NavTab[] = [
-    { id: 'play', href: '/play', icon: Gamepad2, label: 'Play' },
+    { id: 'play', href: '/play', icon: Music, label: 'Jugar' },
     { id: 'ranking', href: '/ranking', icon: Trophy, label: 'Ranking' },
-    { id: 'profile', href: '/profile', icon: User, label: 'Profile' },
+    { id: 'profile', href: '/profile', icon: User, label: 'Mi Perfil' },
   ];
 
   return (

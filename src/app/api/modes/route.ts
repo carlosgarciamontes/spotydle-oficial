@@ -10,10 +10,9 @@ const prisma = new PrismaClient({ adapter });
 
 export async function GET() {
   try {
-    let modes = await prisma.gameMode.findMany({
-      orderBy: { id: 'asc' },
-    });
+    let modes = await prisma.gameMode.findMany({ orderBy: { id: 'asc' } });
 
+    // 1. Si está vacía, poblamos
     if (modes.length === 0) {
       const initialModes = [
         { title: "Daily Challenge", slug: "daily", query: "Top Hits", isLocked: false },
@@ -29,23 +28,15 @@ export async function GET() {
       for (const mode of initialModes) {
         const results = await searchSongsGlobal(mode.query);
         const coverUrl = results.length > 0 ? results[0].coverUrl.replace("100x100bb", "600x600bb") : "";
-
         await prisma.gameMode.create({
-          data: {
-            title: mode.title,
-            slug: mode.slug,
-            query: mode.query,
-            imageUrl: coverUrl,
-            isLocked: mode.isLocked,
-          },
+          data: { ...mode, imageUrl: coverUrl }
         });
       }
-
       modes = await prisma.gameMode.findMany({ orderBy: { id: 'asc' } });
     }
 
-    const needsUpdate = modes.filter(m => !m.imageUrl || m.imageUrl === "" || m.imageUrl === "(empty string)");
-
+    // 2. Auto-rellenado de imágenes faltantes
+    const needsUpdate = modes.filter(m => !m.imageUrl || m.imageUrl === "" || m.imageUrl.includes("empty"));
     if (needsUpdate.length > 0) {
       for (const mode of needsUpdate) {
         const results = await searchSongsGlobal(mode.query);
@@ -57,18 +48,11 @@ export async function GET() {
           });
         }
       }
-      
       modes = await prisma.gameMode.findMany({ orderBy: { id: 'asc' } });
     }
 
     return NextResponse.json(modes);
-
   } catch (error) {
-    let errorMessage = "Error interno desconocido";
-    if (error instanceof Error) errorMessage = error.message;
-    return NextResponse.json(
-      { message: "Error interno del servidor", detalle: errorMessage }, 
-      { status: 500 }
-    );
+    return NextResponse.json({ message: "Error", detalle: error instanceof Error ? error.message : "Error" }, { status: 500 });
   }
 }

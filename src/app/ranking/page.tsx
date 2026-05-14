@@ -44,7 +44,7 @@ const MODES = [
   { id: "hiphop", label: "Hip Hop" },
   { id: "flow-2000", label: "Flow 2000" },
   { id: "rock", label: "Rock" },
-  { id: "flamenkito", label: "Flamenkito" },
+  { id: "pop-esp", label: "Pop Español" }, 
 ];
 
 export default function RankingPage() {
@@ -57,6 +57,7 @@ export default function RankingPage() {
     const fetchRanking = async () => {
       setIsLoading(true);
       try {
+        // Al cambiar el ID en MODES, ahora enviará correctamente ?mode=pop-esp
         const res = await fetch(`/api/ranking?mode=${activeTab}`);
         if (!res.ok) throw new Error("Error al cargar el ranking");
         const data: RankingResponse = await res.json();
@@ -87,7 +88,7 @@ export default function RankingPage() {
       <div className="max-w-2xl mx-auto flex flex-col gap-6">
         
         <header className="text-center mt-2 md:mt-0">
-          <h1 className="text-3xl font-black tracking-widest mb-1 italic">RANKINGS</h1>
+          <h1 className="text-3xl font-black tracking-widest mb-1 italic text-white">RANKINGS</h1>
           <p className="text-gray-400 text-xs font-bold uppercase tracking-[0.3em]">Los mejores de Spotydle</p>
         </header>
 
@@ -104,7 +105,7 @@ export default function RankingPage() {
             <button
               key={mode.id}
               onClick={() => setActiveTab(mode.id)}
-              className={`flex-1 min-w-[95px] py-2 text-sm font-bold rounded-xl transition-all snap-center focus:outline-none focus:ring-2 focus:ring-spotydle/50 ${
+              className={`flex-1 min-w-[95px] py-2 text-sm font-bold rounded-xl transition-all snap-center focus:outline-none ${
                 activeTab === mode.id 
                   ? "bg-spotydle text-white shadow-[0_0_15px_rgba(233,64,150,0.3)]" 
                   : "text-gray-500 hover:text-gray-300"
@@ -131,56 +132,54 @@ export default function RankingPage() {
               {leaderboard[2] && <PodiumCard user={leaderboard[2]} rank={3} avatar={getAvatar(leaderboard[2].avatarId)} isCurrentUser={currentUserRank?.id === leaderboard[2].id} />}
             </div>
 
-            {leaderboard.length > 3 && (
-              <div className="bg-[#1A1A1A] rounded-[2rem] border border-white/5 overflow-hidden shadow-2xl mb-4">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-black/40 text-[10px] uppercase tracking-widest text-gray-500">
-                      <th className="py-4 pl-6 font-black w-2/3">Usuario</th>
-                      <th className="py-4 text-center font-black">Victorias</th>
-                      <th className="py-4 pr-6 text-right font-black">Winrate</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {leaderboard.slice(3).map((user, index) => {
-                      const avatar = getAvatar(user.avatarId);
-                      const isCurrentUser = currentUserRank?.id === user.id;
+            <div className="bg-[#1A1A1A] rounded-[2rem] border border-white/5 overflow-hidden shadow-2xl mb-4">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-black/40 text-[10px] uppercase tracking-widest text-gray-500">
+                    <th className="py-4 pl-6 font-black w-2/3">Usuario</th>
+                    <th className="py-4 text-center font-black">Victorias</th>
+                    <th className="py-4 pr-6 text-right font-black">Winrate</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {leaderboard.slice(3).map((user, index) => {
+                    const avatar = getAvatar(user.avatarId);
+                    const isCurrentUser = currentUserRank?.id === user.id;
 
-                      return (
-                        <motion.tr 
-                          initial={{ opacity: 0, x: -10 }} 
-                          animate={{ opacity: 1, x: 0 }} 
-                          transition={{ delay: index * 0.05 }}
-                          key={user.id} 
-                          className={`group transition-colors ${isCurrentUser ? "bg-spotydle/10 border-l-2 border-spotydle" : "hover:bg-white/5"}`}
-                        >
-                          <td className="py-4 pl-6 flex items-center gap-3 md:gap-4">
-                            <span className={`text-xs font-bold w-4 md:w-6 ${isCurrentUser ? "text-spotydle" : "text-gray-600"}`}>{user.rank}</span>
-                            <div className={`w-8 h-8 md:w-10 md:h-10 shrink-0 rounded-full flex items-center justify-center text-lg md:text-xl bg-gradient-to-br ${avatar.gradient} shadow-lg ${isCurrentUser ? "ring-2 ring-spotydle" : ""}`}>
-                              {avatar.emoji}
-                            </div>
-                            <span className={`font-bold text-sm md:text-base truncate max-w-[100px] md:max-w-[200px] ${isCurrentUser ? "text-white" : ""}`}>
-                              {user.name} {isCurrentUser && <span className="text-spotydle text-xs ml-1">(Tú)</span>}
-                            </span>
-                          </td>
-                          <td className={`py-4 text-center font-black text-sm md:text-base ${isCurrentUser ? "text-white" : "text-spotydle"}`}>
-                            {user.gamesWon}
-                          </td>
-                          <td className="py-4 pr-6 text-right font-mono text-xs md:text-sm text-gray-400">
-                            {user.winRate}%
-                          </td>
-                        </motion.tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                    return (
+                      <motion.tr 
+                        initial={{ opacity: 0, x: -10 }} 
+                        animate={{ opacity: 1, x: 0 }} 
+                        transition={{ delay: index * 0.05 }}
+                        key={user.id} 
+                        className={`group transition-colors ${isCurrentUser ? "bg-spotydle/10 border-l-2 border-spotydle" : "hover:bg-white/5"}`}
+                      >
+                        <td className="py-4 pl-6 flex items-center gap-3 md:gap-4">
+                          <span className={`text-xs font-bold w-4 md:w-6 ${isCurrentUser ? "text-spotydle" : "text-gray-600"}`}>{user.rank}</span>
+                          <div className={`w-8 h-8 md:w-10 md:h-10 shrink-0 rounded-full flex items-center justify-center text-lg md:text-xl bg-gradient-to-br ${avatar.gradient} shadow-lg ${isCurrentUser ? "ring-2 ring-spotydle" : ""}`}>
+                            {avatar.emoji}
+                          </div>
+                          <span className={`font-bold text-sm md:text-base truncate max-w-[100px] md:max-w-[200px] ${isCurrentUser ? "text-white" : ""}`}>
+                            {user.name} {isCurrentUser && <span className="text-spotydle text-xs ml-1">(Tú)</span>}
+                          </span>
+                        </td>
+                        <td className={`py-4 text-center font-black text-sm md:text-base ${isCurrentUser ? "text-white" : "text-spotydle"}`}>
+                          {user.gamesWon}
+                        </td>
+                        <td className="py-4 pr-6 text-right font-mono text-xs md:text-sm text-gray-400">
+                          {user.winRate}%
+                        </td>
+                      </motion.tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </>
         )}
       </div>
 
-      {currentUserRank && currentUserRank.rank > 50 && (
+      {currentUserRank && currentUserRank.rank > 3 && (
         <div className="fixed bottom-[88px] left-0 right-0 px-4 z-40 md:bottom-10 pointer-events-none">
           <motion.div 
             initial={{ y: 50, opacity: 0 }}

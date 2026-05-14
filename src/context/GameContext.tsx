@@ -66,8 +66,7 @@ const createEmptyStats = (): ModeStats => ({
 });
 
 const getTodayDateString = () => {
-  const today = new Date();
-  return `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+  return new Date().toISOString().split('T')[0];
 };
 
 const getInitials = (text: string) => {

@@ -22,7 +22,7 @@ const TopNav: React.FC<TopNavProps> = ({ className }) => {
 
   const tabs = [
     { href: "/ranking", label: "Ranking" },
-    { href: "/profile", label: "Profile" },
+    { href: "/profile", label: "Mi Perfil" },
   ];
 
   return (
