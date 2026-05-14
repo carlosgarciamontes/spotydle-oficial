@@ -72,7 +72,7 @@ model ModeStat {
   gamesWon          Int      @default(0)
   currentStreak     Int      @default(0)
   maxStreak         Int      @default(0)
-  distribution      Int[]    
+  distribution   Int[]   @default([0, 0, 0, 0, 0, 0])
   lastCompletedDate String?
 
   // ==========================================

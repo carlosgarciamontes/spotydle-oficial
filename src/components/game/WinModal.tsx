@@ -46,7 +46,7 @@ const WinModal: React.FC<WinModalProps> = ({ isOpen, modeName, songData, guesses
   
   // Mensaje actualizado con el nombre del modo
   const shareText = `Spotydle ${modeName}🎵\n${attemptCount}/6\n\n${generateEmojiGrid()}\n\n¿Puedes superarlo? Juega aquí:`;
-  const shareUrl = "https://spotydle.com";
+  const shareUrl = "https://spotydle-oficial.vercel.app";
 
   const twitterIntent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
 
