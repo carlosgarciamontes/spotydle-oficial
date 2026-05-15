@@ -103,7 +103,7 @@ const WinModal: React.FC<WinModalProps> = ({ isOpen, modeName, songData, guesses
             className="relative z-10 w-full max-w-sm flex flex-col items-center max-h-[100dvh] overflow-y-auto py-6 max-[380px]:py-4"
           >
             <h1 className={`text-4xl max-[380px]:text-3xl font-black mb-8 max-[380px]:mb-4 tracking-widest text-center shrink-0 ${hasWon ? 'text-green-400 drop-shadow-[0_0_15px_rgba(74,222,128,0.5)]' : 'text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]'}`}>
-              {hasWon ? 'YOU WIN!' : 'GAME OVER'}
+              {hasWon ? 'ENHORABUENA!' : 'GAME OVER'}
             </h1>
             
             <div className={`w-full bg-[#2A2A2A] rounded-[2.5rem] max-[380px]:rounded-[2rem] p-8 max-[380px]:p-5 border shadow-2xl flex flex-col items-center mb-10 max-[380px]:mb-6 transition-colors shrink-0 ${hasWon ? 'border-green-400/50 shadow-[0_0_40px_rgba(74,222,128,0.2)]' : 'border-red-500/50 shadow-[0_0_40px_rgba(239,68,68,0.2)]'}`}>
@@ -132,7 +132,7 @@ const WinModal: React.FC<WinModalProps> = ({ isOpen, modeName, songData, guesses
             </div>
 
             <button onClick={onBackToMenu} className="w-[80%] max-[380px]:w-[85%] py-4 max-[380px]:py-3 rounded-full bg-primary text-white font-extrabold tracking-wide text-xl max-[380px]:text-lg shadow-[0_0_25px_rgba(233,64,150,0.6)] active:scale-95 transition-transform hover:scale-105 shrink-0">
-              BACK TO MENU
+              VOLVER AL MENÚ
             </button>
           </motion.div>
         </div>

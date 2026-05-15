@@ -59,7 +59,7 @@ const RegisterForm = () => {
       <div className="space-y-4">
         <Input
           type="text"
-          placeholder="Username"
+          placeholder="Nombre de usuario"
           variant="light"
           shape="pill"
           value={username}
@@ -82,7 +82,7 @@ const RegisterForm = () => {
         <div className="relative">
           <Input
             type={showPassword ? "text" : "password"}
-            placeholder="Password"
+            placeholder="Contraseña"
             variant="light"
             shape="pill"
             value={password}
@@ -103,7 +103,7 @@ const RegisterForm = () => {
         <div className="relative">
           <Input
             type={showPassword ? "text" : "password"}
-            placeholder="Confirm Password"
+            placeholder="Confirmar contraseña"
             variant="light"
             shape="pill"
             value={confirmPassword}
@@ -137,7 +137,7 @@ const RegisterForm = () => {
         disabled={isLoading}
         className="w-full justify-center shadow-none disabled:opacity-50"
       >
-        {isLoading ? "Cargando..." : "Sign up"}
+        {isLoading ? "Cargando..." : "Crear Cuenta"}
       </Button>
 
       <div className="text-center mt-6">
@@ -145,7 +145,7 @@ const RegisterForm = () => {
           href="/login" 
           className="text-spotydle font-bold text-sm hover:underline transition-all"
         >
-          Already have an account? Log in
+          ¡Ya tienes una cuenta? ¡Inicia Sesión!
         </Link>
       </div>
     </form>

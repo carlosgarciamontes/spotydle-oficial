@@ -5,19 +5,16 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
 export default async function HomePage() {
-  // 1. El servidor comprueba la sesión ANTES de renderizar la página
   const session = await getServerSession();
 
-  // 2. Si detecta la cookie de sesión, expulsa al usuario al menú principal
   if (session) {
     redirect('/play');
   }
 
-  // 3. Si no hay sesión, pinta el diseño limpio que hicimos
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-black">
       
-      <div className="text-center flex flex-col items-center w-full max-w-xs">
+      <div className="text-center flex flex-col items-center w-full max-w-sm">
         
         {/* Logo */}
         <Image 
@@ -29,14 +26,14 @@ export default async function HomePage() {
           priority 
         />
         
-        
-        <h1 className="text-3xl font-bold text-white tracking-wide mb-2">
+        {/* Título */}
+        <h1 className="text-5xl md:text-6xl font-black text-white italic tracking-tight mb-2 uppercase">
           Spotydle
         </h1>
         
         {/* Frase gancho */}
         <p className="text-sm font-medium text-gray-400 mb-10">
-          Adivina la canción diaria en 1 segundo.
+          ¡Inicia sesión y demuestra lo que sabes de música!
         </p>
 
         {/* Contenedor de los botones */}

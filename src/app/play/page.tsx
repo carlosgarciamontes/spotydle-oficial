@@ -66,7 +66,7 @@ export default function PlayMenuPage() {
             </h2>
             
             <p className="text-gray-400 font-medium text-base md:text-lg">
-              ¿Qué vamos a escuchar hoy? Elige un modo para empezar.
+              ¿Qué canción quieres adivinar? Elige un modo para jugar.
             </p>
           </div>
           
