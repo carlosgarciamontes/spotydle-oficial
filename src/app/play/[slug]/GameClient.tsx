@@ -113,6 +113,23 @@ export default function GameClient({ mode }: GameClientProps) {
   const debouncedSearchValue = useDebounce(searchValue, 500);
   const [isInitializing, setIsInitializing] = useState(true);
   const [autoPlayClueId, setAutoPlayClueId] = useState<number | null>(null);
+  const [showIOSWarning, setShowIOSWarning] = useState(false);
+
+  useEffect(() => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    
+    const isWarningDismissed = sessionStorage.getItem("spotydle_ios_warning_dismissed");
+
+    if (isIOS && !isWarningDismissed) {
+      setShowIOSWarning(true);
+    }
+  }, []);
+
+  const handleDismissWarning = () => {
+    setShowIOSWarning(false);
+    sessionStorage.setItem("spotydle_ios_warning_dismissed", "true");
+  };
 
   useEffect(() => {
     if (status === "loading") return;
@@ -273,6 +290,21 @@ export default function GameClient({ mode }: GameClientProps) {
           {mode.title}
         </h1>
       </div>
+
+      {showIOSWarning && !isLoadingGame && (
+        <div className="w-full max-w-md bg-yellow-500/10 border border-yellow-500/30 text-yellow-200/90 text-xs md:text-sm p-3 rounded-xl flex items-center justify-between mt-2 mb-2 shadow-[0_0_10px_rgba(234,179,8,0.05)] shrink-0 animate-in fade-in slide-in-from-top-2 duration-500">
+          <div className="flex gap-3 items-center">
+            <span className="text-xl">📱</span>
+            <p>Si no escuchas nada, recuerda <strong>desactivar el modo silencio</strong> en el interruptor lateral de tu iPhone.</p>
+          </div>
+          <button 
+            onClick={handleDismissWarning} 
+            className="text-yellow-500/70 hover:text-yellow-400 p-1 ml-2 font-bold transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {isLoadingGame ? (
         <GameSkeleton />

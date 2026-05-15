@@ -56,6 +56,15 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ className, autoPlayClueId, on
 
   const { processReverseAudio, playReversed, stopReversed, isReversedReady } = useReverseAudio();
 
+  // Limpieza segura al salir de la página
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (targetSong?.previewUrl) {
       processReverseAudio(targetSong.previewUrl);
@@ -75,7 +84,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ className, autoPlayClueId, on
     // Buscamos hacia atrás cuál fue el último audio desbloqueado
     for (let i = fallos; i >= 0; i--) {
       const clue = clues[i];
-      // TypeScript estrecha el tipo aquí: si es 'audio', sabe que tiene '.duration'
       if (clue && clue.type === 'audio') {
         defaultMaxDuration = clue.duration;
         defaultIsReverseTurn = clue.label.toLowerCase().includes('invertido');
@@ -87,12 +95,30 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ className, autoPlayClueId, on
   const maxDuration = overrideClue ? overrideClue.maxDuration : defaultMaxDuration;
   const isReverseTurn = overrideClue ? overrideClue.isReverseTurn : defaultIsReverseTurn;
 
+  // --- PARCHE iPHONE: Cortafuegos de precisión ---
+  useEffect(() => {
+    let safetyNet: NodeJS.Timeout;
+    if (isPlaying && !isReverseTurn && maxDuration > 0) {
+      safetyNet = setInterval(() => {
+        if (audioRef.current && audioRef.current.currentTime >= maxDuration) {
+          audioRef.current.pause();
+          audioRef.current.currentTime = maxDuration;
+          setCurrentTime(maxDuration);
+          setProgress(100);
+          setIsPlaying(false);
+          setOverrideClue(null);
+          clearInterval(safetyNet);
+        }
+      }, 50); // Chequea cada 50ms para que iOS no se pase del tiempo
+    }
+    return () => clearInterval(safetyNet);
+  }, [isPlaying, isReverseTurn, maxDuration]);
+
   // --- LÓGICA DINÁMICA AL PULSAR UNA PASTILLA DE AUDIO ---
   useEffect(() => {
     if (autoPlayClueId) {
       const clickedClue = clues.find(c => c.id === autoPlayClueId);
       
-      // Al comprobar clue.type === 'audio', eliminamos la necesidad de usar 'any'
       if (clickedClue && clickedClue.type === 'audio') {
         const newMax = clickedClue.duration;
         const newRev = clickedClue.label.toLowerCase().includes('invertido');
@@ -151,6 +177,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ className, autoPlayClueId, on
     return () => clearTimeout(timer);
   }, [defaultMaxDuration, defaultIsReverseTurn]);
 
+  // Lógica del audio invertido
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isPlaying && isReverseTurn) {
@@ -207,6 +234,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ className, autoPlayClueId, on
     const current = audioRef.current.currentTime;
     setCurrentTime(current);
     setProgress((current / maxDuration) * 100);
+    
     const fadeStartTime = maxDuration - 1.2;
     if (current >= fadeStartTime && !isFadingOut.current && isPlaying) {
       isFadingOut.current = true;
@@ -216,17 +244,18 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ className, autoPlayClueId, on
         } else {
           clearInterval(fadeInterval);
           if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.volume = 0;
-            audioRef.current.currentTime = maxDuration;
+            audioRef.current.volume = 0; 
           }
-          setIsPlaying(false);
-          setOverrideClue(null);
         }
       }, 80); 
     }
-    if (current >= maxDuration && !isFadingOut.current) {
-      audioRef.current.pause(); audioRef.current.currentTime = maxDuration; setIsPlaying(false); setOverrideClue(null);
+    
+    
+    if (current >= maxDuration) {
+      audioRef.current.pause(); 
+      audioRef.current.currentTime = maxDuration; 
+      setIsPlaying(false); 
+      setOverrideClue(null);
     }
   };
 
