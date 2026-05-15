@@ -26,10 +26,10 @@ const GameSkeleton = () => {
   const cluesSkeleton = [
     { width: "w-24", isUnlocked: true },
     { width: "w-32", isUnlocked: false },
-    { width: "w-24", isUnlocked: false },
     { width: "w-28", isUnlocked: false },
-    { width: "w-20", isUnlocked: false },
     { width: "w-24", isUnlocked: false },
+    { width: "w-24", isUnlocked: false },
+    { width: "w-20", isUnlocked: false },
   ];
 
   return (
