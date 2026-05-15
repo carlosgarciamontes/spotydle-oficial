@@ -112,8 +112,6 @@ export default function GameClient({ mode }: GameClientProps) {
   const [isSearching, setIsSearching] = useState(false);
   const debouncedSearchValue = useDebounce(searchValue, 500);
   const [isInitializing, setIsInitializing] = useState(true);
-  
-  // Nuevo estado para controlar qué pista de audio enviar al reproductor
   const [autoPlayClueId, setAutoPlayClueId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -126,14 +124,14 @@ export default function GameClient({ mode }: GameClientProps) {
     };
 
     initialize();
-  }, [mode.slug, status]);
+  }, [mode.slug, status, initMode]);
 
   useEffect(() => {
     async function performSearch() {
       if (debouncedSearchValue.length > 2) {
         try {
           const response = await fetch(
-            `/api/search?q=${encodeURIComponent(debouncedSearchValue)}`,
+            `/api/search?q=${encodeURIComponent(debouncedSearchValue)}`
           );
 
           if (!response.ok) {
@@ -141,9 +139,62 @@ export default function GameClient({ mode }: GameClientProps) {
           }
 
           const results = await response.json();
+
+          if (targetSong) {
+            const searchWords = debouncedSearchValue
+              .toLowerCase()
+              .trim()
+              .split(" ")
+              .filter((w) => w.length >= 3);
+
+            const targetTitle = targetSong.title.toLowerCase();
+            const targetArtist = targetSong.artist.toLowerCase();
+
+            const isTitleMatch = searchWords.some((word) =>
+              targetTitle.includes(word)
+            );
+            const isArtistMatch = searchWords.some((word) =>
+              targetArtist.includes(word)
+            );
+
+            const existingIndex = results.findIndex(
+              (r: SongSuggestion) =>
+                r.title.toLowerCase() === targetTitle &&
+                r.artist.toLowerCase() === targetArtist
+            );
+
+            if (isTitleMatch) {
+              if (existingIndex !== -1) {
+                const [foundSong] = results.splice(existingIndex, 1);
+                results.unshift(foundSong);
+              } else {
+                results.unshift({
+                  ...targetSong,
+                  id: "target-song",
+                } as unknown as SongSuggestion);
+              }
+            } else if (isArtistMatch) {
+              let songToInsert;
+
+              if (existingIndex !== -1) {
+                [songToInsert] = results.splice(existingIndex, 1);
+              } else {
+                songToInsert = {
+                  ...targetSong,
+                  id: "target-song",
+                } as unknown as SongSuggestion;
+              }
+
+              const maxPos = results.length > 0 ? results.length : 1;
+              const randomPos = Math.floor(Math.random() * maxPos) + 1;
+              
+              results.splice(randomPos, 0, songToInsert);
+            }
+          }
+
           setSuggestions(results);
         } catch (error) {
-          console.error("Error buscando canciones:", error);
+          console.error(error);
           setSuggestions([]);
         } finally {
           setIsSearching(false);
@@ -155,7 +206,7 @@ export default function GameClient({ mode }: GameClientProps) {
     }
 
     performSearch();
-  }, [debouncedSearchValue]);
+  }, [debouncedSearchValue, targetSong]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
